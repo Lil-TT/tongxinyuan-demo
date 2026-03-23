@@ -2,342 +2,585 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import GUI from 'lil-gui';
+
+// 引入 Three.js 官方的粗线 (Fat Lines) 扩展模块
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 // ==========================================
-// 0. 内置 Shader 字符串 (原汁原味的流体算法)
-// ==========================================
-const vertexShader = `
-varying vec2 vUv;
-void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-
-const fluidShader = `
-uniform float iTime; uniform vec2 iResolution; uniform vec4 iMouse; uniform int iFrame; uniform sampler2D iPreviousFrame;
-uniform float uBrushSize; uniform float uBrushStrength; uniform float uFluidDecay; uniform float uTrailLength; uniform float uStopDecay;
-varying vec2 vUv; vec2 ur, U;
-float In(vec2 p, vec2 a, vec2 b) { return length(p - a - (b - a) * clamp(dot(p - a, b - a) / dot(b - a, b - a), 0., 1.)); }
-vec4 t(vec2 v, int a, int b) { return texture2D(iPreviousFrame, fract((v + vec2(float(a), float(b))) / ur)); }
-vec4 t(vec2 v) { return texture2D(iPreviousFrame, fract(v / ur)); }
-float area(vec2 a, vec2 b, vec2 c) { float A = length(b - c); float B = length(c - a); float C = length(a - b); float s = 0.5 * (A + B + C); return sqrt(s * (s - A) * (s - B) * (s - C)); }
-void main() {
-    ur = iResolution.xy; U = vUv * ur;
-    if(iFrame < 1) { gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); return; }
-    vec2 v = U; vec2 A = vec2(1.0, 1.0); vec2 B = vec2(1.0, -1.0); vec2 C = vec2(-1.0, 1.0); vec2 D = vec2(-1.0, -1.0);
-    for(int i = 0; i < 8; i++) { v -= t(v).xy; A -= t(A).xy; B -= t(B).xy; C -= t(C).xy; D -= t(D).xy; }
-    vec4 me = t(v), n = t(v, 0, 1), e = t(v, 1, 0), s = t(v, 0, -1), w = t(v, -1, 0);
-    me = mix(me, 0.25 * (n + e + s + w), 0.15);
-    me.z -= 0.01 * ((area(A, B, C) + area(B, C, D)) - 4.0);
-    vec4 pr = vec4(e.z, w.z, n.z, s.z);
-    me.xy += 100.0 * vec2(pr.x - pr.y, pr.z - pr.w) / ur;
-    me.xy *= uFluidDecay; me.z *= uTrailLength;
-    if(iMouse.z > 0.0) {
-        vec2 mousePos = iMouse.xy, mousePrev = iMouse.zw, m = mousePos - mousePrev;
-        float velMagnitude = length(m), q = In(U, mousePos, mousePrev), l = length(m);
-        if (l > 0.0) m = min(l, 10.0) * m / l;
-        float falloff = pow(exp(-q * (1e-4 / uBrushSize) * q * q), 0.5);
-        me.xyw += (uBrushStrength * 0.03) * falloff * vec3(m, 10.0);
-        if(velMagnitude < 2.0) { float influence = exp(-length(U - mousePos) * 0.01); float cursorDecay = mix(1.0, uStopDecay, influence); me.xy *= cursorDecay; me.z *= cursorDecay; }
-    }
-    gl_FragColor = clamp(me, -0.4, 0.4);
-}`;
-
-const displayShader = `
-uniform float iTime; uniform vec2 iResolution; uniform sampler2D iFluid;
-uniform float uDistortionAmount; uniform vec3 uColor1; uniform vec3 uColor2; uniform vec3 uColor3; uniform vec3 uColor4; uniform float uColorIntensity; uniform float uSoftness;
-varying vec2 vUv;
-void main() {
-    vec2 fragCoord = vUv * iResolution; vec4 fluid = texture2D(iFluid, vUv); vec2 fluidVel = fluid.xy;
-    vec2 uv = (fragCoord * 2.0 - iResolution.xy) / min(iResolution.x, iResolution.y) + fluidVel * uDistortionAmount;
-    float d = -iTime + 0.5, a = 0.0;
-    for(float i = 0.0; i < 8.0; ++i) { a += cos(i - d - a * uv.x); d += sin(uv.y * i + a); }
-    d += iTime * 0.5;
-    float smoothAmount = clamp(uSoftness * 0.1, 0.0, 0.9);
-    float mixer1 = mix(cos(uv.x * d) * 0.5 + 0.5, 0.5, smoothAmount);
-    float mixer2 = mix(cos(uv.y * a) * 0.5 + 0.5, 0.5, smoothAmount);
-    float mixer3 = mix(sin(d + a) * 0.5 + 0.5, 0.5, smoothAmount);
-    vec3 col = mix(uColor1, uColor2, mixer1); col = mix(col, uColor3, mixer2); col = mix(col, uColor4, mixer3 * 0.4);
-    gl_FragColor = vec4(col * uColorIntensity, 1.0);
-}`;
-
-// ==========================================
-// 1. 初始化背景流体 (Background Fluid)
-// ==========================================
-const config = {
-  brushSize: 25.0, brushStrength: 0.5, distortionAmount: 2.5, fluidDecay: 0.98, trailLength: 0.8, stopDecay: 0.85,
-  color1: "#01040a", color2: "#041126", color3: "#0a2458", color4: "#41a5ff", colorIntensity: 1.2, softness: 1.0,
-};
-const hexToRgb = (hex) => [parseInt(hex.slice(1, 3), 16)/255, parseInt(hex.slice(3, 5), 16)/255, parseInt(hex.slice(5, 7), 16)/255];
-
-const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-const bgRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-document.querySelector(".gradient-canvas").appendChild(bgRenderer.domElement);
-bgRenderer.setSize(window.innerWidth, window.innerHeight);
-
-let fluidTarget1 = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { type: THREE.FloatType });
-let fluidTarget2 = fluidTarget1.clone();
-let currentFluidTarget = fluidTarget1, previousFluidTarget = fluidTarget2, frameCount = 0;
-
-const fluidMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    iTime: { value: 0 }, iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-    iMouse: { value: new THREE.Vector4(0, 0, 0, 0) }, iFrame: { value: 0 }, iPreviousFrame: { value: null },
-    uBrushSize: { value: config.brushSize }, uBrushStrength: { value: config.brushStrength }, uFluidDecay: { value: config.fluidDecay }, uTrailLength: { value: config.trailLength }, uStopDecay: { value: config.stopDecay },
-  }, vertexShader, fragmentShader: fluidShader,
-});
-
-const displayMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    iTime: { value: 0 }, iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }, iFluid: { value: null },
-    uDistortionAmount: { value: config.distortionAmount },
-    uColor1: { value: new THREE.Vector3(...hexToRgb(config.color1)) }, uColor2: { value: new THREE.Vector3(...hexToRgb(config.color2)) },
-    uColor3: { value: new THREE.Vector3(...hexToRgb(config.color3)) }, uColor4: { value: new THREE.Vector3(...hexToRgb(config.color4)) },
-    uColorIntensity: { value: config.colorIntensity }, uSoftness: { value: config.softness },
-  }, vertexShader, fragmentShader: displayShader,
-});
-
-const fluidPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), fluidMaterial);
-const displayPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), displayMaterial);
-
-let mouseX = 0, mouseY = 0, prevX = 0, prevY = 0, lastMove = 0;
-document.addEventListener('mousemove', (e) => {
-  prevX = mouseX; prevY = mouseY; mouseX = e.clientX; mouseY = window.innerHeight - e.clientY;
-  lastMove = performance.now();
-  fluidMaterial.uniforms.iMouse.value.set(mouseX, mouseY, prevX, prevY);
-});
-document.addEventListener('mouseleave', () => fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0));
-
-
-// ==========================================
-// 2. 初始化 3D 耳机模型 (加载 GLB)
+// 1. 全局变量声明与 3D 场景初始化
 // ==========================================
 const canvas3D = document.querySelector('.webgl-canvas');
 const renderer3D = new THREE.WebGLRenderer({ canvas: canvas3D, antialias: true, alpha: true });
 renderer3D.setSize(window.innerWidth, window.innerHeight);
 renderer3D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+// 开启 sRGB 和电影级色调映射，瞬间提升高级感
+renderer3D.outputColorSpace = THREE.SRGBColorSpace;
+renderer3D.toneMapping = THREE.ACESFilmicToneMapping;
+renderer3D.toneMappingExposure = 1.2;
+
 const scene3D = new THREE.Scene();
-const camera3D = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera3D.position.z = 12;
+// 纯黑背景 + 全局雾化
+scene3D.background = null;
+scene3D.fog = new THREE.FogExp2(0x050b1a, 0.02);
 
-// 添加灯光 (真实模型通常需要更好的光照，这里增强了环境光)
-scene3D.add(new THREE.AmbientLight(0xffffff, 1.2)); 
-const dirLight1 = new THREE.DirectionalLight(0x41a5ff, 3); 
-dirLight1.position.set(5, 5, 5); 
-scene3D.add(dirLight1);
-const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.5); 
-dirLight2.position.set(-5, -5, 2); 
-scene3D.add(dirLight2);
+const camera3D = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera3D.position.z = 18;
 
-// 【核心逻辑】创建一个 Group 作为占位符
+// 全局变量：用于交互和动画
+const bgScrollObj = { offset: 0 };
+let meteorGroup;
+let meteorMeshes = [];
 const modelGroup = new THREE.Group();
 scene3D.add(modelGroup);
+let caseLid, earbudLeft, earbudRight;
+let lidInitialRot = 0; // 记录盖子初始角度
 
-// 在外部声明一个变量，用来存我们要拿出来的耳机
-let leftEarbud = null; 
-// 也可以加个右耳机 let rightEarbud = null;
+// ==========================================
+// 1.2 灯光系统 (戏剧性光影)
+// ==========================================
+// 极暗环境光 (保留15%基础亮度，避免死黑)
+scene3D.add(new THREE.AmbientLight(0xffffff, 0.15));
 
-// 实例化加载器并加载模型
-const gltfLoader = new GLTFLoader();
-gltfLoader.load(
-  './box.glb',
-  (gltf) => {
-    const realModel = gltf.scene;
-    
-    // 1. 调整大小 (XYZ 同等比例缩放)
-    // 如果模型太大，改成 0.1；如果太小，改成 10
-    realModel.scale.set(0.07, 0.07, 0.07); 
+// 主光源
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+mainLight.position.set(5, 5, 5);
+scene3D.add(mainLight);
 
-    // 2. 调整位置 (X左右, Y上下, Z前后)
-    // 比如：往下移一点点以居中
-    realModel.position.set(0, -1.5, 2.62);
+// 核心轮廓光（侧后方冷蓝光，塑造边缘）
+const rimLight = new THREE.DirectionalLight(0x41a5ff, 5);
+rimLight.position.set(-5, 5, -5);
+scene3D.add(rimLight);
 
-    // 3. 调整初始角度 (弧度制，Math.PI 就是 180度)
-    // 比如：让模型初始面向正前方
-    realModel.rotation.x = 1.13; 
+// 补光（底部微弱蓝光）
+const fillLight = new THREE.DirectionalLight(0x112244, 2);
+fillLight.position.set(0, -5, 2);
+scene3D.add(fillLight);
 
-    modelGroup.add(realModel);
-
-
-    // 1. 找到耳机
-    realModel.traverse((child) => {
-      if (child.isMesh && (child.name.includes('柱体') || child.name === '柱体')) {
-        leftEarbud = child; 
-      }
-    });
-
-    // ==========================================
-    // 2. 核心剥离操作：真正把耳机从盒子里“拿出来”
-    // ==========================================
-    if (leftEarbud) {
-      // 将耳机从原有的层级树中摘出，直接挂载到我们最外层的容器 modelGroup 上
-      modelGroup.attach(leftEarbud);
-      
-      console.log("左耳机已成功剥离，当前父级:", leftEarbud.parent);
-    }
-  }
-);
+// 镜头控制器
+const controls3D = new OrbitControls(camera3D, renderer3D.domElement);
+controls3D.enableDamping = true;
+controls3D.dampingFactor = 0.05;
+controls3D.enablePan = false;
+controls3D.minDistance = 8;
+controls3D.maxDistance = 35;
 
 
 // ==========================================
-// 3. 全局动画循环 (Render Loop)
+// 1.3 几何球形网格系统 (纯净蓝图网格)
 // ==========================================
-function animate() {
-  requestAnimationFrame(animate);
-  const time = performance.now() * 0.001;
-  
-  // 流体计算与渲染
-  fluidMaterial.uniforms.iTime.value = time; displayMaterial.uniforms.iTime.value = time; fluidMaterial.uniforms.iFrame.value = frameCount;
-  if (performance.now() - lastMove > 100) fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0);
-  fluidMaterial.uniforms.iPreviousFrame.value = previousFluidTarget.texture;
-  
-  bgRenderer.setRenderTarget(currentFluidTarget); bgRenderer.render(fluidPlane, bgCamera);
-  displayMaterial.uniforms.iFluid.value = currentFluidTarget.texture;
-  bgRenderer.setRenderTarget(null); bgRenderer.render(displayPlane, bgCamera);
-  
-  [currentFluidTarget, previousFluidTarget] = [previousFluidTarget, currentFluidTarget]; frameCount++;
+const sphericalGridGroup = new THREE.Group();
+sphericalGridGroup.visible = false; // 【新增】：初始隐藏网格
+scene3D.add(sphericalGridGroup);
 
-  // 3D 渲染
-  // modelGroup.rotation.y += 0.002; // 修改这里：让容器自转
-  renderer3D.render(scene3D, camera3D);
-}
-animate();
+const baseSphereGeo = new THREE.SphereGeometry(60, 40, 20);
+const wireframeGeo = new THREE.WireframeGeometry(baseSphereGeo);
 
-window.addEventListener('resize', () => {
-  const w = window.innerWidth, h = window.innerHeight;
-  bgRenderer.setSize(w, h); renderer3D.setSize(w, h);
-  fluidMaterial.uniforms.iResolution.value.set(w, h); displayMaterial.uniforms.iResolution.value.set(w, h);
-  fluidTarget1.setSize(w, h); fluidTarget2.setSize(w, h);
-  camera3D.aspect = w / h; camera3D.updateProjectionMatrix();
+const lineGeo = new LineGeometry();
+lineGeo.setPositions(wireframeGeo.attributes.position.array);
+
+// 设置粗线材质 (关闭透明度防止交叉过曝)
+window.gridLineMat = new LineMaterial({
+  color: 0x0e223c, // 暗夜蓝
+  linewidth: 2.5,
+  transparent: false, // 杜绝颜色叠加
+  resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
 });
 
+const sphericalGridMesh = new LineSegments2(lineGeo, window.gridLineMat);
+sphericalGridMesh.computeLineDistances();
+sphericalGridGroup.add(sphericalGridMesh);
+
 
 // ==========================================
-// 4. GSAP 剧本：加载期 -> 交叉淡入 -> 滚动触发
+// 1.4 深空浮动粒子系统 (Plexus / Stars)
 // ==========================================
+let particlesGroup = new THREE.Group();
+particlesGroup.visible = false; // 【新增】：初始隐藏粒子（为了极致干爽，建议一起隐藏）
+scene3D.add(particlesGroup);
 
-// 4.1 Loading 动画准备
+const particleCount = 50000;
+const boxSize = 500;
+const pointsGeometry = new THREE.BufferGeometry();
+const positionsArray = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount * 3; i++) {
+  positionsArray[i] = (Math.random() - 0.5) * boxSize;
+}
+pointsGeometry.setAttribute('position', new THREE.BufferAttribute(positionsArray, 3));
+
+// 动态发光软边圆点
+const dotCanvas = document.createElement('canvas');
+dotCanvas.width = dotCanvas.height = 32;
+const ctx = dotCanvas.getContext('2d');
+const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+gradient.addColorStop(0.3, 'rgba(65, 165, 255, 0.8)');
+gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = gradient;
+ctx.fillRect(0, 0, 32, 32);
+const dotTexture = new THREE.CanvasTexture(dotCanvas);
+
+const pointsMaterial = new THREE.PointsMaterial({
+  size: 1.2,
+  map: dotTexture,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  color: 0xaaccff
+});
+
+const floatingParticles = new THREE.Points(pointsGeometry, pointsMaterial);
+particlesGroup.add(floatingParticles);
+
+
+// ==========================================
+// 1.5 背景流星雨系统 (6颗蓝色群组)
+// ==========================================
+meteorGroup = new THREE.Group();
+scene3D.add(meteorGroup);
+
+const meteorCanvas = document.createElement('canvas');
+meteorCanvas.width = 512;
+meteorCanvas.height = 32;
+const meteorCtx = meteorCanvas.getContext('2d');
+
+const meteorGradient = meteorCtx.createLinearGradient(0, 16, 512, 16);
+meteorGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+meteorGradient.addColorStop(0.6, 'rgba(0, 80, 255, 0.1)');
+meteorGradient.addColorStop(0.9, 'rgba(65, 165, 255, 0.9)');
+meteorGradient.addColorStop(1, 'rgba(200, 240, 255, 1)');
+meteorCtx.fillStyle = meteorGradient;
+meteorCtx.fillRect(0, 0, 512, 32);
+const meteorTexture = new THREE.CanvasTexture(meteorCanvas);
+
+const meteorGeo = new THREE.PlaneGeometry(15, 0.3);
+
+for (let i = 0; i < 6; i++) {
+  const meteorMat = new THREE.MeshBasicMaterial({
+    map: meteorTexture,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(meteorGeo, meteorMat);
+  meteorMeshes.push(mesh);
+  meteorGroup.add(mesh);
+}
+meteorGroup.position.set(0, 0, -50);
+
+
+// ==========================================
+// 2. 外部 UI 动画组装 (剥离模型依赖)
+// ==========================================
 gsap.set('.loader__circle', { opacity: 0, filter: 'blur(16px)' });
 gsap.set('.tagcloud--item', { opacity: 0 });
-// 独立自转
+
 gsap.to('.loader__circle:nth-child(1)', { rotationZ: 360, duration: 25, repeat: -1, ease: 'none' });
 gsap.to('.loader__circle:nth-child(2)', { rotationZ: -360, duration: 35, repeat: -1, ease: 'none' });
 gsap.to('.loader__circle:nth-child(3)', { rotationZ: 360, duration: 20, repeat: -1, ease: 'none' });
 
-const loadingTl = gsap.timeline({ delay: 0.5 });
+// 初始设为暂停，等模型加载完毕再 play
+const loadingTl = gsap.timeline({ paused: true, delay: 0.5 });
 const counterObj = { val: 0 };
 
-// 展开圆环与数字增长
 loadingTl.to('.loader__circle', {
   opacity: 1, filter: 'blur(0px)', duration: 2.5, ease: 'expo.out', stagger: { each: 0.15, from: "end" }
 }, 0)
-.to('.tagcloud--item', { opacity: 1, duration: 1, stagger: 0.2 }, 1)
-.to(counterObj, {
-  val: 100, duration: 4.5, ease: "power2.inOut",
-  onUpdate: () => document.getElementById('counter').innerText = `[ ${Math.round(counterObj.val).toString().padStart(3, '0')} ]`
-}, 0);
+  .to('.tagcloud--item', { opacity: 1, duration: 1, stagger: 0.2 }, 1)
+  .to(counterObj, {
+    val: 100, duration: 4.5, ease: "power2.inOut",
+    onUpdate: () => document.getElementById('counter').innerText = `[ ${Math.round(counterObj.val).toString().padStart(3, '0')} ]`
+  }, 0)
+  .to('.loader__circle:nth-child(-n+6)', {
+    rotationX: (i) => i % 2 === 0 ? 360 : -360,
+    rotationY: (i) => i % 2 === 0 ? -360 : 360,
+    duration: 3.5, ease: 'power3.inOut', stagger: 0.12
+  }, "+=0.2")
+  .to('.loader-w', {
+    scale: 0.5, opacity: 0, filter: 'blur(10px)', duration: 1.5, ease: 'power3.inOut'
+  }, "+=1.5")
+  .to('.tagcloud-w', { opacity: 0, duration: 1 }, "<");
 
-// 360度多轴陀螺仪翻转
-loadingTl.to('.loader__circle:nth-child(-n+6)', {
-  rotationX: (i) => i % 2 === 0 ? 360 : -360,
-  rotationY: (i) => i % 2 === 0 ? -360 : 360,
-  duration: 3.5, ease: 'power3.inOut', stagger: 0.12
-}, "+=0.2"); 
 
-// 4.2 核心转场：淡出 Loading，淡入 Stage 2 并解禁滚动
-loadingTl.to('.loader-w', {
-  scale: 0.5, opacity: 0, filter: 'blur(10px)', duration: 2, ease: 'power3.inOut'
-}, "+=1.5") // 停顿1.5秒后开始退场
-.to('.tagcloud-w', { opacity: 0, duration: 1 }, "<")
-// **关键交接点：淡入后台流体与 3D，解除 body 滚动锁定**
-.to('.stage2-el', { 
-  opacity: 1, duration: 2, ease: 'power2.out',
-  onStart: () => {
-    document.body.style.overflowY = 'auto'; // 恢复系统滚动条
-    ScrollTrigger.refresh(); // 强制 GSAP 重新计算高度
+// ==========================================
+// 3. 模型加载与开场动画挂载
+// ==========================================
+const gltfLoader = new GLTFLoader();
+gltfLoader.load(
+  './box1.glb',
+  (gltf) => {
+    const realModel = gltf.scene;
+
+    // 1. 调整大小
+    realModel.scale.set(0.07, 0.07, 0.07);
+    // 2. 调整位置
+    realModel.position.set(0, -1.5, 2.62);
+    // 3. 调整初始角度
+    realModel.rotation.x = 1;
+
+    // 【核心新增】让包裹模型的总组初始悬浮在半空 (Y=12)
+    modelGroup.position.set(0, 12, 0);
+    modelGroup.add(realModel);
+
+    // 遍历寻找我们需要的部件 (更新为新命名)
+    realModel.traverse((child) => {
+      if (child.name === 'Case_Lid') caseLid = child;
+      if (child.name === 'Waferright') {
+        earbudRight = child;
+        // 【核心新增】：克隆材质，让右晶圆拥有独立的材质，以便后续用 GSAP 单独给它变色！
+        if (child.material) {
+          child.material = child.material.clone();
+        }
+      }
+      if (child.name === 'Waferleft') earbudLeft = child;
+
+      if (child.isMesh && child.material) {
+        child.material.roughness = 0.35;
+        child.material.metalness = 0.6;
+        child.material.envMapIntensity = 1.5;
+      }
+    });
+
+    if (caseLid) {
+      modelGroup.attach(caseLid);
+      lidInitialRot = caseLid.rotation.x; // 记录铰链初始角度
+    }
+    if (earbudLeft) modelGroup.attach(earbudLeft);
+    if (earbudRight) modelGroup.attach(earbudRight);
+
+    // 将 3D 动作追加进 loadingTl
+    loadingTl
+      // 【修改 1】在 Loading 圆环退场后，提前把 stage2-el（包含导航栏、底栏、空UI容器）淡入进来。
+      // 注意：此时 .ui-stage-1 本身还是 opacity: 0 的，所以文字此时依然看不见，保持干爽。
+      .to('.stage2-el', { opacity: 1, duration: 1 }, "<0.5")
+
+      // 瞬间显示网格与粒子
+      .set(sphericalGridGroup, { visible: true }, "<")
+      .set(particlesGroup, { visible: true }, "<")
+
+      // A. 下沉砸向画面中心
+      .to(modelGroup.position, { y: 0, duration: 1.2, ease: "power3.in" }, "<")
+
+      // B. 砸地瞬间：冲击波与震动
+      .add(() => {
+        const vid = document.getElementById('shockwaveVideo');
+        if (vid) {
+          vid.currentTime = 0;
+          vid.play().catch(err => console.warn("冲击波视频警告:", err));
+        }
+      })
+      .to('#shockwaveVideo', { opacity: 1, duration: 0.2 }, "<")
+      .to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, "<") // 注意这里加了 "<" 同步
+
+      // ==========================================================
+      // 【核心新增：方案 A】砸地的同一瞬间，两侧文字伴随冲击波“爆”出来！
+      // ==========================================================
+      .fromTo('.ui-stage-1',
+        { opacity: 0, y: 30, filter: 'blur(10px)' }, // 初始状态：下沉、透明、模糊
+        { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: "power2.out" }, // 弹入状态
+        "<" // 这个 "<" 就是灵魂，意味着它和砸地/冲击波在同一毫秒发生！
+      )
+
+      // C. 自动开盖展示 (延迟 0.3 秒，让用户先消化一下刚刚的视觉冲击)
+      .to(caseLid.rotation, { x: lidInitialRot - Math.PI / 2, duration: 1.5, ease: "power2.out" }, "+=0.3")
+      .to('#shockwaveVideo', {
+        opacity: 0,
+        duration: 1,
+        onComplete: () => {
+          const vid = document.getElementById('shockwaveVideo');
+          if (vid) vid.remove();
+        }
+      }, "<")
+
+      // D. 交互解锁：恢复滚动条，绑定下拉动画
+      .add(() => {
+        document.body.style.overflow = 'auto';
+        document.documentElement.style.overflow = 'auto'; // 【新增】：确保 html 层级也被彻底解锁
+
+        ScrollTrigger.refresh();
+        setupDebugGUI();
+        initScrollTimeline(); // 激活鼠标滚轮的时间轴
+      });
+
+    // 播放组装完毕的开场动画
+    loadingTl.play();
+
+    // 启动定时流星生成器
+    function scheduleNextMeteor() {
+      const delay = THREE.MathUtils.randInt(8000, 15000);
+      setTimeout(() => {
+        triggerShootingStar();
+        scheduleNextMeteor();
+      }, delay);
+    }
+    setTimeout(scheduleNextMeteor, 3000);
   }
-}, "<0.5") 
-// 标题文字出场
-.fromTo('.step:first-child .text-content', 
-  { opacity: 0, y: 50 }, 
-  { opacity: 1, y: 0, duration: 1.5, ease: 'expo.out' }, 
-  "-=1"
 );
 
-// 4.3 Stage 2 滚动事件绑定 (ScrollTrigger)
-// 只有在转场开始（ScrollTrigger刷新）后，这些动作才有意义
-// gsap.to(modelGroup.rotation, {
-//   y: Math.PI * 4, x: Math.PI * 1.5, ease: "none",
-//   scrollTrigger: {
-//     trigger: ".scroll-container",
-//     start: "top top", end: "bottom bottom",
-//     scrub: 1 
+
+// ==========================================
+// 4. 用户交互时间轴 (ScrollTrigger)
+// ==========================================
+function initScrollTimeline() {
+  const circle = document.querySelector('.progress-ring__circle');
+  const radius = circle.r.baseVal.value;
+  const circumference = radius * 2 * Math.PI;
+
+  circle.style.strokeDasharray = `${circumference} ${circumference}`;
+  circle.style.strokeDashoffset = circumference;
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: ".scroll-container",
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 1,
+      snap: {
+        snapTo: [0, 0.25, 0.5, 0.75, 1],
+        delay: 2,
+        ease: "power2.inOut",
+        duration: { min: 0.5, max: 1.5 }
+      },
+      onUpdate: (self) => {
+        // 圆环进度
+        const offset = circumference - self.progress * circumference;
+        gsap.to(circle, { strokeDashoffset: offset, duration: 0.1, ease: "none" });
+
+        // 背景视差偏移代理
+        gsap.to(bgScrollObj, {
+          offset: self.progress * -Math.PI * 2,
+          duration: 0.8,
+          ease: "power2.out"
+        });
+      }
+    }
+  });
+
+  const w1Initial = { pos: earbudLeft.position.clone(), rot: earbudLeft.rotation.clone() };
+  const w2Initial = { pos: earbudRight.position.clone(), rot: earbudRight.rotation.clone() };
+
+  // ------------------------------------------
+  // Stage 1 (0 -> 25%): 预备动作 - 盒子微扭转
+  // ------------------------------------------
+  tl.addLabel("stage1", 0);
+
+  // 1. 开场英雄文字平滑淡出
+  tl.to(".ui-stage-1", { opacity: 0, duration: 0.5 }, "stage1+=0.25");
+
+  // 2. 盒子微移与扭转 (完美应用你的 GUI 参数)
+  tl.to(modelGroup.position, {
+    x: -1.2,
+    y: -0.65,
+    z: -0.16,
+    ease: "power1.inOut"
+  }, "stage1")
+    .to(modelGroup.rotation, {
+      x: -0.25159,
+      y: 0.288407,
+      z: 0.568407,
+      ease: "power1.inOut"
+    }, "stage1");
+
+  tl.to(earbudLeft.position, {
+    y: w1Initial.pos.y + 0.5, // Sublte 垂直上升的一点点 (用户可根据 GUI 调优此数值)
+    z: w1Initial.pos.z + 1,
+    ease: "power1.inOut"
+  }, "stage1"); // 延迟开始，形成错落节奏
+
+  // ==========================================================
+  // Stage 2 (25% -> 50%): 左晶圆主导升空，右晶圆滞后跟随，镜头推近
+  // ==========================================================
+  tl.addLabel("stage2", 0.25);
+
+  // 1. 盒子总组：持续下沉，同时向屏幕外侧(左下方)移动，退出视觉中心
+  // 结合推镜头的效果，我们在 Z 轴上也稍微拉近一点点
+  tl.to(modelGroup.position, {
+    x: -3.5,
+    y: -8.5,
+    z: 1.5, // 稍微拉近
+    duration: 0.75,
+    ease: "power2.inOut"
+  }, "stage2")
+    .to(modelGroup.rotation, {
+      z: 0.2,
+      duration: 0.75,
+      ease: "power2.inOut"
+    }, "stage2");
+
+  // 2. 左晶圆主导升空与旋转
+  // 注意：因为老爸(modelGroup)在 Y 轴下沉了约 8，在 Z 轴拉近了 1.5
+  // 所以左晶圆要停在屏幕中央偏上的位置，它自身的 Y 和 Z 需要大幅增加
+  tl.to(earbudLeft.position, {
+    x: 3.5, // 移动到大致居中偏左的位置
+    y: w1Initial.pos.y + 9, // 抵消盒子的下沉，飞向高处
+    z: w1Initial.pos.z + 5, // 飞向镜头
+    duration: 1.5,
+    ease: "power2.out"
+  }, "stage2")
+    .to(earbudLeft.rotation, {
+      // 达到图中的倾斜姿态
+      x: 3.3,
+      y: 3.8,
+      z: 0.1,
+      duration: 1.5,
+      ease: "power2.out"
+    }, "stage2");
+
+  // 3. 右晶圆滞后跟随与旋转
+  // 使用 "stage2+=0.4" 让右晶圆比左晶圆晚起飞 0.4 秒，形成你要求的错落感
+  tl.to(earbudRight.position, {
+    x: 1.5, // 偏右
+    y: w2Initial.pos.y + 10.5, // 飞向稍低一点的位置
+    z: w2Initial.pos.z + 5.5, // 稍微比左晶圆更靠近镜头一点
+    duration: 1.3, // 稍微缩短飞行时间，显得更有冲劲
+    ease: "power2.out"
+  }, "stage2+=0.4")
+    .to(earbudRight.rotation, {
+      // 达到图中的倾斜姿态
+      x: 0.2,
+      y: -0.5,
+      z: -0.2,
+      duration: 1.3,
+      ease: "power2.out"
+    }, "stage2+=0.4");
+
+  // 接下来的 stage3 暂时保留你原来的，等后续再调
+  tl.addLabel("stage3", 0.5);
+}
+
+
+// ==========================================
+// 5. 渲染循环与功能函数
+// ==========================================
+function animate() {
+  requestAnimationFrame(animate);
+
+  const time = performance.now() * 0.0001;
+
+  // 网格滚动视差
+  if (sphericalGridGroup) {
+    sphericalGridGroup.rotation.y = (time * 1) + bgScrollObj.offset;
+    sphericalGridGroup.position.y = Math.sin(time * 2) * 15;
+  }
+
+  // 粒子滚动视差 (速度略慢于网格)
+  if (typeof particlesGroup !== 'undefined' && particlesGroup) {
+    particlesGroup.rotation.y = (time * 0.7) + (bgScrollObj.offset * 0.8);
+    particlesGroup.position.y = Math.sin(time * 1.2) * 8;
+    particlesGroup.rotation.x = Math.sin(time * 0.5) * 0.1;
+  }
+
+  if (controls3D) {
+    controls3D.update();
+  }
+
+  renderer3D.render(scene3D, camera3D);
+}
+animate();
+
+// 触发流星群
+function triggerShootingStar() {
+  if (meteorMeshes.length === 0) return;
+
+  const startX = -70;
+  const endX = 80;
+  const groupBaseY = THREE.MathUtils.randFloat(5, 25);
+  const groupBaseDuration = THREE.MathUtils.randFloat(1.2, 1.8);
+  const groupAngle = THREE.MathUtils.randFloat(-0.2, 0.1);
+
+  meteorMeshes.forEach((mesh) => {
+    const offsetX = THREE.MathUtils.randFloat(-20, 10);
+    const offsetY = THREE.MathUtils.randFloat(-4, 4);
+    const individualDuration = groupBaseDuration + THREE.MathUtils.randFloat(-0.1, 0.2);
+
+    mesh.rotation.z = groupAngle;
+
+    const meteorTl = gsap.timeline();
+    meteorTl
+      .set(mesh.position, { x: startX + offsetX, y: groupBaseY + offsetY })
+      .set(mesh.material, { opacity: 0 })
+      .to(mesh.position, {
+        x: endX + offsetX,
+        y: groupBaseY + offsetY - (individualDuration * 5),
+        duration: individualDuration,
+        ease: "linear"
+      }, 0)
+      .to(mesh.material, { opacity: 1, duration: individualDuration * 0.2 }, 0)
+      .to(mesh.material, { opacity: 0, duration: individualDuration * 0.2 }, `-=${individualDuration * 0.2}`);
+  });
+}
+
+// 无缝无限滚动闭环
+// window.addEventListener('scroll', () => {
+//   const scrollTop = document.documentElement.scrollTop;
+//   const scrollHeight = document.documentElement.scrollHeight;
+//   const clientHeight = document.documentElement.clientHeight;
+
+//   if (scrollTop + clientHeight >= scrollHeight - 2) {
+//     window.scrollTo(0, 0);
+//   }
+//   if (scrollTop <= 0) {
+//     window.scrollTo(0, scrollHeight - clientHeight - 2);
 //   }
 // });
 
-const steps = gsap.utils.toArray('.step');
-steps.forEach((step, index) => {
-  // 第一个标题已经在 loadingTl 中入场了，不用重复赋予进场动画
-  if (index !== 0) {
-    gsap.fromTo(step.querySelector('.text-content'), 
-      { opacity: 0, y: 80 }, 
-      {
-        opacity: 1, y: 0, ease: "power2.out",
-        scrollTrigger: {
-          trigger: step, start: "top 60%", end: "center center", scrub: true
-        }
-      }
-    );
-  }
-  // 离场动画 (最后一段话不离场)
-  if (index !== steps.length - 1) {
-    gsap.to(step.querySelector('.text-content'), {
-      opacity: 0, y: -80, ease: "power2.in",
-      scrollTrigger: {
-        trigger: step, start: "center center", end: "bottom 40%", scrub: true
-      }
-    });
+// 窗口自适应适配
+window.addEventListener('resize', () => {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer3D.setSize(w, h);
+  camera3D.aspect = w / h;
+  camera3D.updateProjectionMatrix();
+
+  if (window.gridLineMat) {
+    window.gridLineMat.resolution.set(w, h);
   }
 });
 
-// 等待一小段时间，确保模型加载完毕后再绑定动画 
-// 更好的做法是将这段逻辑封装进 loader 的成功回调里，或者使用 Promise
-setTimeout(() => {
-  console.log(leftEarbud)
-  if (leftEarbud) {
-    // 记录耳机原始位置，方便计算相对位移
-    const startX = leftEarbud.position.x;
-    const startY = leftEarbud.position.y;
-    const startZ = leftEarbud.position.z;
+// ==========================================
+// 调试工具：Figma 视觉还原面板
+// ==========================================
+function setupDebugGUI() {
+  const gui = new GUI({ title: '🎬 动画关键帧调试' });
 
-    // 1. 让耳机往上、往前“飞出来”
-    gsap.to(leftEarbud.position, {
-      x: startX + 6,
-      y: startY + 50, // 往上飞出充电仓 (数值根据你的模型比例调整)
-      z: startZ + 6, // 往屏幕外(观众方向)靠一点
-      ease: "power1.inOut",
-      scrollTrigger: {
-        trigger: ".step:nth-child(2)", // 当滚动到第二个 section 时触发
-        start: "top 60%",              // 屏幕滚动到触发器顶部 60% 时开始
-        end: "center center",          // 滚动到正中央时结束
-        scrub: 1                       // 开启平滑滚动跟随
-      }
-    });
+  // 1. 整体模型组 (控制总体位置和视角)
+  const groupFolder = gui.addFolder('📦 模型总组 (modelGroup)');
+  groupFolder.add(modelGroup.position, 'x', -10, 10, 0.01).name('Pos X');
+  groupFolder.add(modelGroup.position, 'y', -10, 10, 0.01).name('Pos Y');
+  groupFolder.add(modelGroup.position, 'z', -20, 20, 0.01).name('Pos Z');
+  groupFolder.add(modelGroup.rotation, 'x', -Math.PI, Math.PI, 0.01).name('Rot X');
+  groupFolder.add(modelGroup.rotation, 'y', -Math.PI, Math.PI, 0.01).name('Rot Y');
+  groupFolder.add(modelGroup.rotation, 'z', -Math.PI, Math.PI, 0.01).name('Rot Z');
 
-    // 2. 飞出时带一点优雅的旋转
-    gsap.to(leftEarbud.rotation, {
-      x: leftEarbud.rotation.x - Math.PI / 4, // 抬头
-      y: leftEarbud.rotation.y + Math.PI / 2, // 侧转展示侧面
-      ease: "power1.inOut",
-      scrollTrigger: {
-        trigger: ".step:nth-child(2)",
-        start: "top 60%",
-        end: "center center",
-        scrub: 1
-      }
-    });
-  } else {
-    console.warn("未找到耳机模型，无法添加飞出动画！请检查 child.name");
+  // 2. 左耳机 (Waferleft)
+  if (earbudLeft) {
+    const leftFolder = gui.addFolder('🎧 左晶圆 (earbudLeft)');
+    leftFolder.add(earbudLeft.position, 'x', -10, 10, 0.01).name('Pos X');
+    leftFolder.add(earbudLeft.position, 'y', -10, 10, 0.01).name('Pos Y');
+    leftFolder.add(earbudLeft.position, 'z', -10, 10, 0.01).name('Pos Z');
+    leftFolder.add(earbudLeft.rotation, 'x', -Math.PI, Math.PI, 0.01).name('Rot X');
+    leftFolder.add(earbudLeft.rotation, 'y', -Math.PI, Math.PI, 0.01).name('Rot Y');
+    leftFolder.add(earbudLeft.rotation, 'z', -Math.PI, Math.PI, 0.01).name('Rot Z');
   }
-}, 2000); // 简单用 2 秒延迟确保模型加载完，生产环境建议放在 loader 的回调中
+
+  // 3. 右耳机 (Waferright)
+  if (earbudRight) {
+    const rightFolder = gui.addFolder('🎧 右晶圆 (earbudRight)');
+    rightFolder.add(earbudRight.position, 'x', -10, 10, 0.01).name('Pos X');
+    rightFolder.add(earbudRight.position, 'y', -10, 10, 0.01).name('Pos Y');
+    rightFolder.add(earbudRight.position, 'z', -10, 10, 0.01).name('Pos Z');
+    rightFolder.add(earbudRight.rotation, 'x', -Math.PI, Math.PI, 0.01).name('Rot X');
+    rightFolder.add(earbudRight.rotation, 'y', -Math.PI, Math.PI, 0.01).name('Rot Y');
+    rightFolder.add(earbudRight.rotation, 'z', -Math.PI, Math.PI, 0.01).name('Rot Z');
+  }
+
+  gui.close(); // 默认折叠起来
+}

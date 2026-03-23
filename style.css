@@ -3,8 +3,11 @@ body, html {
   background: #020611; /* 深邃宇宙底色 */
   color: white;
   font-family: 'Helvetica Neue', Arial, sans-serif;
-  overflow: hidden; /* 初始隐藏滚动条，等 Loading 结束后再开启 */
-  height: 100vh;
+}
+
+/* 将初始的滚动锁定单独交给 body */
+body {
+  overflow: hidden; 
 }
 
 /* =========================================
@@ -56,10 +59,9 @@ body, html {
 }
 
 /* 画布层 (固定在底层) */
-.gradient-canvas, .webgl-canvas {
+.webgl-canvas {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
 }
-.gradient-canvas { z-index: 1; }
 .webgl-canvas { z-index: 2; pointer-events: none; } /* 鼠标穿透给底层的波纹 */
 
 /* 固定 UI */
@@ -92,3 +94,130 @@ header {
 .subtitle { font-family: 'Space Mono', monospace; font-size: 0.85rem !important; text-transform: uppercase; letter-spacing: 1px; }
 .right-align { justify-content: flex-end; text-align: right; }
 .left-align { justify-content: flex-start; text-align: left; }
+
+/* =========================================
+   圆环进度条样式
+   ========================================= */
+.circular-progress-w {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5; /* 放在底层背景(1,2)之上，但文字(10)之下 */
+  pointer-events: none; /* 防止遮挡鼠标交互 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.progress-ring {
+  /* 初始逆时针旋转 90 度，让进度从正上方 (12点钟方向) 开始 */
+  transform: rotate(-90deg);
+}
+
+.progress-ring__circle {
+  /* 增加一点外发光，提升高级感 */
+  filter: drop-shadow(0 0 8px rgba(65, 165, 255, 0.6));
+  transition: stroke-dashoffset 0.1s linear; /* 让进度更新更顺滑 */
+}
+
+.ui-container { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: flex; justify-content: center; align-items: center; }
+.ui-layer { position: absolute; opacity: 0; transition: opacity 0.5s ease; text-align: center; }
+/* 具体 UI 排版 */
+.ui-stage-1 h1 { font-size: 3rem; margin-bottom: 10px; }
+.matrix-title { font-family: 'Space Mono', monospace; letter-spacing: 4px; font-size: 2rem; text-shadow: 0 0 20px rgba(65,165,255,0.8); }
+
+/* =========================================
+   Figma 视觉还原：开场文字排版 (Stage 1 精调版)
+   ========================================= */
+.hero-left {
+  top: 30%; 
+  /* 增加左侧留白，从 10% 加大到 15%，更符合 Figma 的高级空间感 */
+  left: 10%; 
+  text-align: left;
+  transform: translateY(-50%); 
+}
+.hero-left h1 {
+  /* 调整字号和字重，还原设计稿的比例 */
+  font-size: 2.4rem; 
+  margin-bottom: 15px;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+.hero-left p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.65); /* 稍微调低透明度，拉开层级 */
+  line-height: 1.8; /* 增加行高 */
+  letter-spacing: 1px;
+}
+
+.hero-right {
+  /* 加大底部和右侧的内边距，使其不那么贴边 */
+  bottom: 15%; 
+  right: 15%; 
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px; /* 稍微缩小 Icon 和文字的间距 */
+}
+.hero-right p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+}
+
+/* 微调圆环 Icon 的大小和粗细以完美匹配设计稿 */
+.icon-circles svg {
+  width: 40px;
+  height: 24px;
+}
+
+/* =========================================
+   Stage 2: 晶圆特写与指示线排版
+   ========================================= */
+.ui-stage-2 { 
+  width: 100vw; height: 100vh; 
+  position: absolute; top: 0; left: 0;
+}
+.ui-stage-2 .param {
+  position: absolute;
+  top: 50%; /* 垂直居中 */
+  transform: translateY(-50%);
+  text-align: left;
+}
+.ui-stage-2 .param span { 
+  font-size: 0.8rem; color: rgba(255,255,255,0.6); 
+  display: block; margin-top: 5px;
+}
+
+/* 左侧文字与向右的指示线 */
+.ui-stage-2 .param.left {
+  left: 12%; 
+}
+.ui-stage-2 .param.left::after {
+  content: ''; 
+  position: absolute; 
+  top: 15px; /* 对齐主标题高度 */
+  left: 100%; /* 线从文字右侧开始 */
+  width: 15vw; /* 线的长度 */
+  height: 1px; 
+  background: rgba(255, 255, 255, 0.3); /* 半透明高级线 */
+  margin-left: 20px;
+}
+
+/* 右侧文字与向左的指示线 */
+.ui-stage-2 .param.right {
+  right: 12%; 
+}
+.ui-stage-2 .param.right::before {
+  content: ''; 
+  position: absolute; 
+  top: 15px; 
+  right: 100%; /* 线从文字左侧开始 */
+  width: 15vw; 
+  height: 1px; 
+  background: rgba(255, 255, 255, 0.3);
+  margin-right: 20px;
+}

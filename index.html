@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,13 +8,20 @@
   <link rel="stylesheet" href="./style.css">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
   <div class="loader-w">
     <div class="loader">
-      <div class="loader__circle"><div class="loader__dot dot1"></div></div>
-      <div class="loader__circle"><div class="loader__dot dot2"></div></div>
-      <div class="loader__circle"><div class="loader__dot dot3"></div></div>
+      <div class="loader__circle">
+        <div class="loader__dot dot1"></div>
+      </div>
+      <div class="loader__circle">
+        <div class="loader__dot dot2"></div>
+      </div>
+      <div class="loader__circle">
+        <div class="loader__dot dot3"></div>
+      </div>
       <div class="loader__circle"></div>
       <div class="loader__circle"></div>
       <div class="loader__circle core"></div>
@@ -27,8 +35,11 @@
     <span id="counter">[ 000 ]</span>
   </div>
 
-  <div class="gradient-canvas stage2-el"></div>
-  <canvas class="webgl-canvas stage2-el"></canvas>
+  <video id="shockwaveVideo" src="./wave.mp4" muted playsinline
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; opacity: 0; pointer-events: none;">
+  </video>
+
+  <canvas class="webgl-canvas" style="z-index: 1;"></canvas>
 
   <header class="fixed-ui stage2-el">
     <div class="logo">AETHER : 1</div>
@@ -38,36 +49,40 @@
     <button class="ask-btn">Ask Aether</button>
   </div>
 
-  <div class="scroll-container stage2-el" id="scroll-content">
-    <section class="step">
-      <div class="text-content">
-        <h1>Sound Without<br>Boundaries</h1>
-        <p class="subtitle">Elevate your senses through timeless resonance</p>
+  <div class="ui-container stage2-el">
+
+    <div class="ui-layer ui-stage-1 hero-left">
+      <h1>xMR晶圆<br>xMR-MEMS传感核心晶圆<br>专业提供者</h1>
+    </div>
+
+    <div class="ui-layer ui-stage-1 hero-right">
+      <div class="icon-circles">
+        <svg width="44" height="28" viewBox="0 0 44 28">
+          <circle cx="14" cy="14" r="13" stroke="rgba(255,255,255,0.7)" stroke-width="1" fill="none" />
+          <circle cx="30" cy="14" r="13" stroke="rgba(255,255,255,0.7)" stroke-width="1" fill="none" />
+        </svg>
       </div>
-    </section>
-    
-    <section class="step right-align">
-      <div class="text-content">
-        <h2>Unrivalled audio quality</h2>
-        <p>Crafted for pure clarity and studio-grade precision.</p>
-      </div>
-    </section>
-    
-    <section class="step left-align">
-      <div class="text-content">
-        <h2>Intuitive Controls</h2>
-        <p>Seamlessly interact with your auditory environment.</p>
-      </div>
-    </section>
-    
-    <section class="step right-align">
-      <div class="text-content">
-        <h2>Sub Alphatonic Power Core</h2>
-        <p>Extended battery life powered by next-gen micro fusion.</p>
-      </div>
-    </section>
+      <p>Close the Gap Between<br>Current and Future</p>
+    </div>
+
+    <div class="ui-layer ui-stage-2">
+      <div class="param left">xMR薄膜晶圆<br><span>各种结构和性能的晶圆, 8寸, 12寸</span></div>
+      <div class="param right">xMR传感核心晶圆<br><span>桥路结构, 8寸, 12寸</span></div>
+    </div>
+  </div>
+
+  <div class="scroll-container stage2-el" style="height: 400vh; width: 100%; pointer-events: none;"></div>
+
+  <div class="circular-progress-w stage2-el">
+    <svg class="progress-ring" width="800" height="800">
+      <circle class="progress-ring__bg" stroke="rgba(65, 165, 255, 0.1)" stroke-width="2" fill="transparent" r="380"
+        cx="400" cy="400" />
+      <circle class="progress-ring__circle" stroke="#41a5ff" stroke-width="3" fill="transparent" r="380" cx="400"
+        cy="400" stroke-linecap="round" />
+    </svg>
   </div>
 
   <script type="module" src="./main.js"></script>
 </body>
+
 </html>
