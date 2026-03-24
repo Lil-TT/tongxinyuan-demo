@@ -1,99 +1,261 @@
-body, html {
-  margin: 0; padding: 0;
-  background: #020611; /* 深邃宇宙底色 */
+body,
+html {
+  margin: 0;
+  padding: 0;
+  background: #020611;
+  /* 深邃宇宙底色 */
   color: white;
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* 将初始的滚动锁定单独交给 body */
 body {
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 /* =========================================
    Stage 1: Loading 样式
    ========================================= */
 .loader-w {
-  position: fixed; inset: 0; z-index: 50; pointer-events: none;
-  display: flex; justify-content: center; align-items: center;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
 .loader {
-  width: 50rem; height: 50rem;
-  transform-style: preserve-3d; transform: perspective(60rem);
+  width: 50rem;
+  height: 50rem;
+  transform-style: preserve-3d;
+  transform: perspective(60rem);
 }
+
 .loader__circle {
-  position: absolute; border-radius: 50%;
+  position: absolute;
+  border-radius: 50%;
   background: radial-gradient(circle at 0%, rgba(65, 165, 255, 0.1), rgba(65, 165, 255, 0.01));
   box-shadow: 0 1px 0 hsla(0, 0%, 100%, 0.2), inset 0 1px 0 rgba(65, 165, 255, 0.1);
-  transform-style: preserve-3d; will-change: transform, opacity, filter; transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+  transform-origin: 50% 50%;
 }
-.loader__circle:nth-child(1) { inset: 0rem; }
-.loader__circle:nth-child(2) { inset: 4rem; }
-.loader__circle:nth-child(3) { inset: 8rem; }
-.loader__circle:nth-child(4) { inset: 12rem; }
-.loader__circle:nth-child(5) { inset: 16rem; }
-.loader__circle:nth-child(6) { inset: 20rem; border: none; box-shadow: none; background: rgba(65, 165, 255, 0.05); }
+
+.loader__circle:nth-child(1) {
+  inset: 0rem;
+}
+
+.loader__circle:nth-child(2) {
+  inset: 4rem;
+}
+
+.loader__circle:nth-child(3) {
+  inset: 8rem;
+}
+
+.loader__circle:nth-child(4) {
+  inset: 12rem;
+}
+
+.loader__circle:nth-child(5) {
+  inset: 16rem;
+}
+
+.loader__circle:nth-child(6) {
+  inset: 20rem;
+  border: none;
+  box-shadow: none;
+  background: rgba(65, 165, 255, 0.05);
+}
 
 .loader__dot {
-  width: 6px; height: 6px; position: absolute; top: 0%; left: 50%; background: #41a5ff;
-  border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 12px 2px rgba(65, 165, 255, 0.8);
+  width: 6px;
+  height: 6px;
+  position: absolute;
+  top: 0%;
+  left: 50%;
+  background: #41a5ff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px 2px rgba(65, 165, 255, 0.8);
   transform-style: preserve-3d;
 }
-.dot1 { margin-left: -20%; margin-top: 5%; }
-.dot2 { margin-left: 25%; margin-top: 8%; }
-.dot3 { margin-left: -10%; margin-top: 2%; }
 
-.tagcloud-w { position: fixed; inset: 0; z-index: 51; pointer-events: none; font-family: 'Space Mono', monospace; }
-.tagcloud--item { position: absolute; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
-.top-right { top: 30%; right: 25%; }
-.center-left { top: 50%; left: 25%; }
-.bottom-center { bottom: 20%; left: 50%; transform: translateX(-50%); }
-#counter { position: absolute; bottom: 40px; right: 40px; font-size: 14px; letter-spacing: 2px; }
+.dot1 {
+  margin-left: -20%;
+  margin-top: 5%;
+}
+
+.dot2 {
+  margin-left: 25%;
+  margin-top: 8%;
+}
+
+.dot3 {
+  margin-left: -10%;
+  margin-top: 2%;
+}
+
+.tagcloud-w {
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  pointer-events: none;
+  font-family: 'Space Mono', monospace;
+}
+
+.tagcloud--item {
+  position: absolute;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.top-right {
+  top: 30%;
+  right: 25%;
+}
+
+.center-left {
+  top: 50%;
+  left: 25%;
+}
+
+.bottom-center {
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#counter {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
 
 /* =========================================
    Stage 2: 场景与滚动排版样式
    ========================================= */
 /* 第二阶段元素初始统统隐藏 */
 .stage2-el {
-  opacity: 0; 
+  opacity: 0;
 }
 
 /* 画布层 (固定在底层) */
 .webgl-canvas {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
 }
-.webgl-canvas { z-index: 2; pointer-events: none; } /* 鼠标穿透给底层的波纹 */
+
+.webgl-canvas {
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 鼠标穿透给底层的波纹 */
 
 /* 固定 UI */
 .fixed-ui {
-  position: fixed; z-index: 100; pointer-events: auto;
+  position: fixed;
+  z-index: 100;
+  pointer-events: auto;
 }
+
 header {
-  top: 40px; left: 40px; right: 40px; display: flex; justify-content: space-between;
-  font-family: 'Space Mono', monospace; font-size: 12px;
+  top: 40px;
+  left: 40px;
+  right: 40px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
 }
-.bottom-action { bottom: 40px; left: 50%; transform: translateX(-50%); }
+
+.bottom-action {
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .ask-btn {
-  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 12px 36px; border-radius: 40px; color: white; backdrop-filter: blur(10px); cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px 36px;
+  border-radius: 40px;
+  color: white;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
   transition: all 0.3s;
 }
-.ask-btn:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
+
+.ask-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
 
 /* 滚动容器 */
 .scroll-container {
-  position: relative; z-index: 10; width: 100%;
+  position: relative;
+  z-index: 10;
+  width: 100%;
 }
+
 .step {
-  height: 100vh; display: flex; align-items: center; padding: 0 10%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 0 10%;
 }
-.text-content { max-width: 450px; }
-.step h1 { font-size: 4.5rem; line-height: 1.1; margin-bottom: 20px; font-weight: 400; letter-spacing: -2px; }
-.step h2 { font-size: 2.5rem; margin-bottom: 15px; font-weight: 400; letter-spacing: -1px; }
-.step p { font-size: 1.1rem; color: rgba(255, 255, 255, 0.7); line-height: 1.6; }
-.subtitle { font-family: 'Space Mono', monospace; font-size: 0.85rem !important; text-transform: uppercase; letter-spacing: 1px; }
-.right-align { justify-content: flex-end; text-align: right; }
-.left-align { justify-content: flex-start; text-align: left; }
+
+.text-content {
+  max-width: 450px;
+}
+
+.step h1 {
+  font-size: 4.5rem;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  font-weight: 400;
+  letter-spacing: -2px;
+}
+
+.step h2 {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  font-weight: 400;
+  letter-spacing: -1px;
+}
+
+.step p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+}
+
+.subtitle {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.right-align {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.left-align {
+  justify-content: flex-start;
+  text-align: left;
+}
 
 /* =========================================
    圆环进度条样式
@@ -103,8 +265,10 @@ header {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 5; /* 放在底层背景(1,2)之上，但文字(10)之下 */
-  pointer-events: none; /* 防止遮挡鼠标交互 */
+  z-index: 5;
+  /* 放在底层背景(1,2)之上，但文字(10)之下 */
+  pointer-events: none;
+  /* 防止遮挡鼠标交互 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -118,49 +282,80 @@ header {
 .progress-ring__circle {
   /* 增加一点外发光，提升高级感 */
   filter: drop-shadow(0 0 8px rgba(65, 165, 255, 0.6));
-  transition: stroke-dashoffset 0.1s linear; /* 让进度更新更顺滑 */
+  transition: stroke-dashoffset 0.1s linear;
+  /* 让进度更新更顺滑 */
 }
 
-.ui-container { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: flex; justify-content: center; align-items: center; }
-.ui-layer { position: absolute; opacity: 0; transition: opacity 0.5s ease; text-align: center; }
+.ui-container {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ui-layer {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  text-align: center;
+}
+
 /* 具体 UI 排版 */
-.ui-stage-1 h1 { font-size: 3rem; margin-bottom: 10px; }
-.matrix-title { font-family: 'Space Mono', monospace; letter-spacing: 4px; font-size: 2rem; text-shadow: 0 0 20px rgba(65,165,255,0.8); }
+.ui-stage-1 h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.matrix-title {
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 4px;
+  font-size: 2rem;
+  text-shadow: 0 0 20px rgba(65, 165, 255, 0.8);
+}
 
 /* =========================================
    Figma 视觉还原：开场文字排版 (Stage 1 精调版)
    ========================================= */
 .hero-left {
-  top: 30%; 
+  top: 30%;
   /* 增加左侧留白，从 10% 加大到 15%，更符合 Figma 的高级空间感 */
-  left: 10%; 
+  left: 10%;
   text-align: left;
-  transform: translateY(-50%); 
+  transform: translateY(-50%);
 }
+
 .hero-left h1 {
   /* 调整字号和字重，还原设计稿的比例 */
-  font-size: 2.4rem; 
+  font-size: 2.4rem;
   margin-bottom: 15px;
   font-weight: 500;
   letter-spacing: 2px;
 }
+
 .hero-left p {
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.65); /* 稍微调低透明度，拉开层级 */
-  line-height: 1.8; /* 增加行高 */
+  color: rgba(255, 255, 255, 0.65);
+  /* 稍微调低透明度，拉开层级 */
+  line-height: 1.8;
+  /* 增加行高 */
   letter-spacing: 1px;
 }
 
 .hero-right {
   /* 加大底部和右侧的内边距，使其不那么贴边 */
-  bottom: 15%; 
-  right: 15%; 
+  bottom: 15%;
+  right: 15%;
   text-align: left;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px; /* 稍微缩小 Icon 和文字的间距 */
+  gap: 12px;
+  /* 稍微缩小 Icon 和文字的间距 */
 }
+
 .hero-right p {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.65);
@@ -175,49 +370,297 @@ header {
 }
 
 /* =========================================
-   Stage 2: 晶圆特写与指示线排版
+   Stage 2: 晶圆特写与指示线排版 (SVG 曲线重构版)
    ========================================= */
-.ui-stage-2 { 
-  width: 100vw; height: 100vh; 
-  position: absolute; top: 0; left: 0;
+.ui-stage-2 {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
+
 .ui-stage-2 .param {
   position: absolute;
-  top: 50%; /* 垂直居中 */
+}
+
+/* 错落的 Y 轴定位 */
+.ui-stage-2 .param.left {
+  text-align: right;
+  top: 30%;
+  /* 左侧明显偏上 */
+  left: 15%;
+}
+
+.ui-stage-2 .param.right {
+  text-align: left;
+  top: 55%;
+  /* 右侧明显偏下 */
+  right: 15%;
+}
+
+.ui-stage-2 .param-text {
+  position: relative;
+  z-index: 2;
+  font-family: PingFang SC;
+  font-weight: 500;
+  font-style: Medium;
+  font-size: 24px;
+  line-height: 100%;
+  letter-spacing: 0%;
+}
+
+.ui-stage-2 .param span {
+  font-family: PingFang SC;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: 0%;
+}
+
+/* =========================================
+   SVG 曲线引线定位逻辑
+   ========================================= */
+.guide-line {
+  position: absolute;
+  top: 15px;
+  /* 与第一行大字垂直对齐 */
+  width: 250px;
+  /* 控制引线在屏幕上的真实物理宽度 */
+  height: 150px;
+  pointer-events: none;
+  /* 防止遮挡鼠标交互 */
+  overflow: visible;
+}
+
+.guide-line.left-line {
+  left: calc(100% + 15px);
+  /* 从左侧文字块的右边缘向外延伸 */
+}
+
+.guide-line.right-line {
+  right: calc(100% + 45px);
+  /* 从右侧文字块的左边缘向外延伸 */
+}
+
+/* =========================================
+   Stage 3: 传感核心晶圆排版系统
+   ========================================= */
+.ui-stage-3 {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* 1. 左侧大标题 */
+.stage3-title {
+  position: absolute;
+  top: 50%;
+  left: 15%;
   transform: translateY(-50%);
   text-align: left;
 }
-.ui-stage-2 .param span { 
-  font-size: 0.8rem; color: rgba(255,255,255,0.6); 
-  display: block; margin-top: 5px;
+
+.stage3-title h1 {
+  font-size: 3.5rem;
+  /* 字号加大以突出 xMR */
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: 2px;
 }
 
-/* 左侧文字与向右的指示线 */
-.ui-stage-2 .param.left {
-  left: 12%; 
-}
-.ui-stage-2 .param.left::after {
-  content: ''; 
-  position: absolute; 
-  top: 15px; /* 对齐主标题高度 */
-  left: 100%; /* 线从文字右侧开始 */
-  width: 15vw; /* 线的长度 */
-  height: 1px; 
-  background: rgba(255, 255, 255, 0.3); /* 半透明高级线 */
-  margin-left: 20px;
+.stage3-title h2 {
+  font-size: 2.2rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+  letter-spacing: 1px;
 }
 
-/* 右侧文字与向左的指示线 */
-.ui-stage-2 .param.right {
-  right: 12%; 
+/* 2 & 3. 标注文字通用样式 */
+.ui-stage-3 .callout {
+  position: absolute;
+  text-align: left;
 }
-.ui-stage-2 .param.right::before {
-  content: ''; 
-  position: absolute; 
-  top: 15px; 
-  right: 100%; /* 线从文字左侧开始 */
-  width: 15vw; 
-  height: 1px; 
-  background: rgba(255, 255, 255, 0.3);
-  margin-right: 20px;
+
+.ui-stage-3 .callout-text {
+  position: relative;
+  z-index: 2;
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+.ui-stage-3 .callout-text span {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  display: block;
+  margin-top: 6px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+
+/* 右上角标注 (8寸) 定位 */
+.ui-stage-3 .callout-tr {
+  top: 25%;
+  right: 25%;
+}
+
+.guide-line.tr-line {
+  right: calc(100% + 15px);
+  /* 引线放在文字左侧 */
+  top: -5px;
+  /* 微调以对齐 8寸 的中心高度 */
+}
+
+/* 左下角标注 (12寸) 定位 */
+.ui-stage-3 .callout-bl {
+  bottom: 22%;
+  left: 32%;
+}
+
+.guide-line.bl-line {
+  left: calc(100% + 15px);
+  /* 引线放在文字右侧 */
+  bottom: -5px;
+  /* 因为引线是从下往上画，所以以 bottom 对齐文字底部 */
+  top: auto;
+  /* 覆盖全局的 top: 15px */
+}
+
+/* 4. 右下角参数矩阵 (Flexbox 列表) */
+.ui-stage-3 .spec-list {
+  position: absolute;
+  bottom: 20%;
+  right: 15%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  /* 控制行间距 */
+  text-align: left;
+}
+
+.spec-item {
+  display: flex;
+  align-items: center;
+}
+
+.spec-item .label {
+  font-size: 1.2rem;
+  font-weight: 400;
+  width: 65px;
+  /* 固定宽度，让右侧文字完美对齐 */
+  letter-spacing: 1px;
+}
+
+.spec-item .value {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+}
+
+/* =========================================
+   Stage 4: 薄膜晶圆排版系统
+   ========================================= */
+.ui-stage-4 {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* 1. 左侧大标题 */
+.stage4-title {
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  transform: translateY(-50%);
+  text-align: left;
+}
+
+.stage4-title h1 {
+  font-size: 3.5rem;
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+.stage4-title h2 {
+  font-size: 2.2rem;
+  color: rgba(255, 255, 255, 0.6);
+  /* 颜色稍微压暗，凸显主次 */
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+
+/* 2. 右上角标注 (8寸) */
+.ui-stage-4 .callout-s4-tr {
+  position: absolute;
+  top: 25%;
+  right: 20%;
+  text-align: left;
+}
+
+.guide-line.s4-tr-line {
+  right: calc(100% + 15px);
+  /* 线条从文字左侧伸出 */
+  top: -5px;
+}
+
+/* 3. 右下角标注 (12寸) */
+.ui-stage-4 .callout-s4-br {
+  position: absolute;
+  bottom: 25%;
+  right: 25%;
+  /* 比上面稍微往左一点，形成错落 */
+  text-align: left;
+}
+
+.guide-line.s4-br-line {
+  right: calc(100% + 15px);
+  /* 线条从文字左侧伸出 */
+  bottom: -5px;
+  top: auto;
+}
+
+/* =========================================
+   【Figma 视觉还原】HUD 引线标注文字通用精调
+   ========================================= */
+
+/* 1. 统一字体：强制全场所有引线标注使用 Space Mono 字体，确保科技感规整 */
+.ui-layer [class*="param-text"],
+.ui-layer [class*="callout-text"] {
+  font-family: 'Space Mono', monospace; 
+  text-align: left; /* 强制左对齐，保持秩序感 */
+  line-height: 1.2; /* 紧凑主标题行高，减少与副标题的间距 */
+}
+
+/* 2. 第一行文字样式精调 (例如：8寸, xMR薄膜晶圆) */
+.ui-layer [class*="param-text"],
+.ui-layer [class*="callout-text"] {
+  /* 增加字号以突出重点，从以前的 ~1.4rem 调大到 1.8rem */
+  font-size: 1.8rem;
+  /* 增加字重至 600 (Demi Bold)，确保文字清晰、 crisp */
+  font-weight: 600;
+  /* 使用纯白，达到最高亮度 */
+  color: #ffffff;
+  letter-spacing: 1px; /* 稍微增加字距，提升易读性 */
+}
+
+/* 3. 第二行文字样式精调 (在 span 标签内) (例如：AMR GMR TMR) */
+.ui-layer [class*="param-text"] span,
+.ui-layer [class*="callout-text"] span {
+  /* 稍微增加副标题字号，确保小字也能清晰阅读，调至 ~1.0rem */
+  font-size: 1.0rem;
+  /* 恢复正常字重，拉开层级 */
+  font-weight: 400;
+  /* 使用 80% 透明度的白，达到高级的浅灰色效果，降低视觉干扰 */
+  color: rgba(255, 255, 255, 0.8);
+  
+  display: block; /* 确保占满一行，强制换行 */
+  margin-top: 8px; /* 【关键】：精准设定第一行与第二行的垂直间距，保持紧凑不拥挤 */
+  letter-spacing: 0.5px;
 }

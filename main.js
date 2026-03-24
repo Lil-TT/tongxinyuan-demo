@@ -331,6 +331,26 @@ gltfLoader.load(
 // 4. 用户交互时间轴 (ScrollTrigger)
 // ==========================================
 function initScrollTimeline() {
+// 🌟 【核心修复 1】：安全提取内部 Mesh 的材质，避免 undefined 报错
+  let leftMat, rightMat;
+  if (earbudLeft) {
+    earbudLeft.traverse((child) => {
+      if (child.isMesh) leftMat = child.material;
+    });
+  }
+  if (earbudRight) {
+    earbudRight.traverse((child) => {
+      if (child.isMesh) {
+        // 确保右晶圆被克隆，以便独立变色不影响左晶圆
+        if (!child.material.isCloned) {
+          child.material = child.material.clone();
+          child.material.isCloned = true;
+        }
+        rightMat = child.material;
+      }
+    });
+  }
+
   const circle = document.querySelector('.progress-ring__circle');
   const radius = circle.r.baseVal.value;
   const circumference = radius * 2 * Math.PI;
@@ -345,10 +365,10 @@ function initScrollTimeline() {
       end: "bottom bottom",
       scrub: 1,
       snap: {
-        snapTo: [0, 0.25, 0.5, 0.75, 1],
-        delay: 2,
+        snapTo: "labels", // 🌟 【魔法配置】：自动吸附到所有 addLabel 定义的关键帧
+        delay: 0.1,       // 稍微缩短延迟，手感更干脆
         ease: "power2.inOut",
-        duration: { min: 0.5, max: 1.5 }
+        duration: { min: 0.2, max: 0.8 } // 缩短吸附的动画时间，避免拖沓
       },
       onUpdate: (self) => {
         // 圆环进度
@@ -374,7 +394,7 @@ function initScrollTimeline() {
   tl.addLabel("stage1", 0);
 
   // 1. 开场英雄文字平滑淡出
-  tl.to(".ui-stage-1", { opacity: 0, duration: 0.5 }, "stage1+=0.25");
+  tl.to(".ui-stage-1", { opacity: 0, duration: 0.5}, "stage1");
 
   // 2. 盒子微移与扭转 (完美应用你的 GUI 参数)
   tl.to(modelGroup.position, {
@@ -399,7 +419,10 @@ function initScrollTimeline() {
   // ==========================================================
   // Stage 2 (25% -> 50%): 左晶圆主导升空，右晶圆滞后跟随，镜头推近
   // ==========================================================
-  tl.addLabel("stage2", 0.25);
+  tl.addLabel("stage2", 0.5);
+
+  // 1. 第二段文字进场英雄文字平滑淡出
+  tl.to(".ui-stage-2", { opacity: 1, duration: 0.5}, "stage2");
 
   // 1. 盒子总组：持续下沉，同时向屏幕外侧(左下方)移动，退出视觉中心
   // 结合推镜头的效果，我们在 Z 轴上也稍微拉近一点点
@@ -407,23 +430,23 @@ function initScrollTimeline() {
     x: -3.5,
     y: -8.5,
     z: 1.5, // 稍微拉近
-    duration: 0.75,
-    ease: "power2.inOut"
+    duration: 0.3,
+    ease: "power2.out"
   }, "stage2")
     .to(modelGroup.rotation, {
       z: 0.2,
-      duration: 0.75,
-      ease: "power2.inOut"
+      duration: 0.3,
+      ease: "power2.out"
     }, "stage2");
 
   // 2. 左晶圆主导升空与旋转
   // 注意：因为老爸(modelGroup)在 Y 轴下沉了约 8，在 Z 轴拉近了 1.5
   // 所以左晶圆要停在屏幕中央偏上的位置，它自身的 Y 和 Z 需要大幅增加
   tl.to(earbudLeft.position, {
-    x: 3.5, // 移动到大致居中偏左的位置
-    y: w1Initial.pos.y + 9, // 抵消盒子的下沉，飞向高处
-    z: w1Initial.pos.z + 5, // 飞向镜头
-    duration: 1.5,
+    x: 1.5, // 移动到大致居中偏左的位置
+    y: w1Initial.pos.y + 8, // 抵消盒子的下沉，飞向高处
+    z: w1Initial.pos.z + 4, // 飞向镜头
+    duration: 0.3,
     ease: "power2.out"
   }, "stage2")
     .to(earbudLeft.rotation, {
@@ -431,30 +454,352 @@ function initScrollTimeline() {
       x: 3.3,
       y: 3.8,
       z: 0.1,
-      duration: 1.5,
+      duration: 0.3,
       ease: "power2.out"
     }, "stage2");
+
+    // 2.1 左晶圆主导升空与旋转
+  // 注意：因为老爸(modelGroup)在 Y 轴下沉了约 8，在 Z 轴拉近了 1.5
+  // 所以左晶圆要停在屏幕中央偏上的位置，它自身的 Y 和 Z 需要大幅增加
+    tl.to(earbudLeft.position, {
+    x: 2, // 移动到大致居中偏左的位置
+    y: w1Initial.pos.y + 6.9, // 抵消盒子的下沉，飞向高处
+    z: w1Initial.pos.z + 7, // 飞向镜头
+    duration: 1.3,
+    ease: "power2.out"
+  }, "stage2+=0.3")
+    .to(earbudLeft.rotation, {
+      // 达到图中的倾斜姿态
+      x: 6.41,
+      y: 6.91,
+      z: 0.1,
+      duration: 1.3,
+      ease: "power2.out"
+    }, "stage2+=0.3");
 
   // 3. 右晶圆滞后跟随与旋转
   // 使用 "stage2+=0.4" 让右晶圆比左晶圆晚起飞 0.4 秒，形成你要求的错落感
   tl.to(earbudRight.position, {
     x: 1.5, // 偏右
-    y: w2Initial.pos.y + 10.5, // 飞向稍低一点的位置
-    z: w2Initial.pos.z + 5.5, // 稍微比左晶圆更靠近镜头一点
-    duration: 1.3, // 稍微缩短飞行时间，显得更有冲劲
+    y: w2Initial.pos.y + 7.0, // 飞向稍低一点的位置
+    z: w2Initial.pos.z + 7, // 稍微比左晶圆更靠近镜头一点
+    duration: 1.6, // 稍微缩短飞行时间，显得更有冲劲
     ease: "power2.out"
-  }, "stage2+=0.4")
+  }, "stage2+=0.1")
     .to(earbudRight.rotation, {
       // 达到图中的倾斜姿态
-      x: 0.2,
-      y: -0.5,
+      x: 12.2,
+      y: -9.63,
+      z: -0.2,
+      duration: 1.6,
+      ease: "power2.out"
+    }, "stage2+=0.1");
+
+  // 接下来的 stage3 暂时保留你原来的，等后续再调
+  // ==========================================================
+  // Stage 3 (50% -> 75%): 传感核心晶圆特写与矩阵排版
+  // ==========================================================
+  tl.addLabel("stage3", 2.1);
+
+  // 1. 平滑隐藏上一阶段的 UI
+  tl.to(".ui-stage-2", { opacity: 0, duration: 0.4 }, "stage3");
+
+  // 2. 瞬间点亮当前阶段的 UI 容器 (真正的入场动画交给子元素)
+  tl.set(".ui-stage-3", { opacity: 1}, "stage3"); 
+
+  // 3. 其他元素正常出场 (左侧主标题、两个带引线的标注)
+  // 采用整体淡入 + 微微上浮的经典效果
+  tl.fromTo([".stage3-title", ".callout"], 
+    { opacity: 0, y: 20 },
+    { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
+    "stage3+=0.2" // 延迟 0.2 秒，等用户滚到这一屏稳住后再出字
+  );
+
+  // 4. 【核心实现】右下角参数矩阵：阶梯式 (Stagger) 出场
+  // 从右侧微微滑入 (x: 30 -> 0)
+  tl.fromTo(".spec-item",
+    { opacity: 0, x: 30 }, 
+    { 
+      opacity: 1, 
+      x: 0, 
+      duration: 0.6, 
+      ease: "power2.out", 
+      stagger: 0.15 // 魔法参数：每个 .spec-item 晚 0.15 秒出场，形成完美的阶梯感
+    },
+    "stage3+=0.4" // 比主标题稍微晚一点出场，引导用户的视线从左扫到右
+  );
+
+  // 2. 左晶圆旋转
+  tl
+    .to(earbudLeft.rotation, {
+      // 达到图中的倾斜姿态
+      x: 0,
+      y: 0,
       z: -0.2,
       duration: 1.3,
       ease: "power2.out"
-    }, "stage2+=0.4");
+    }, "stage3");
 
-  // 接下来的 stage3 暂时保留你原来的，等后续再调
-  tl.addLabel("stage3", 0.5);
+  // 右边晶圆
+  tl
+    .to(earbudRight.rotation, {
+      // 达到图中的倾斜姿态
+      x: 0,
+      y: 0,
+      z: -0.2,
+      duration: 1.3,
+      ease: "power2.out"
+    }, "stage3");
+
+  // ==========================================================
+  // Stage 4: 晶圆横移换位与薄膜晶圆特写
+  // ==========================================================
+  tl.addLabel("stage4", 3.4);
+  // 1. 平滑隐藏 Stage 3 的 UI
+  tl.to(".ui-stage-3", { opacity: 0, duration: 0.4 }, "stage4");
+
+  // 2. 晶圆飞行动画 (分离 -> 换位 -> 面对镜头)
+  
+  // 左侧晶圆 (灰色)：转正面对镜头，保持在视觉中心稍靠左
+  tl.to(earbudLeft.position, {
+      x: 0.9, // 偏左
+      // 保持之前的 Y 高度，Z轴拉近凸显主角
+      z: w1Initial.pos.z + 8, 
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "stage4")
+  .to(earbudLeft.rotation, {
+      // ⚠️ 【GUI 调试点】：这里我用了 Math.PI / 2 来尝试让它正对镜头。
+      // 如果它没有完美面对你，请用 GUI 面板调出正对镜头的 xyz 值并替换这里！
+      x: Math.PI / 2, 
+      y: 0,
+      z: 0,
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "stage4");
+
+  // 右侧晶圆 (青蓝色)：滑动到左晶圆的右后方，同样转正面对镜头
+  tl.to(earbudRight.position, {
+      x: 0.9, // 偏右
+      y: 5.3,
+      // Z轴比左晶圆小，代表它在左晶圆的“后面”
+      z: w2Initial.pos.z + 10, 
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "stage4")
+  .to(earbudRight.rotation, {
+      x: 0.748, // 同样正对镜头
+      y: 0.12,
+      z: 0.97,
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "stage4");
+
+  // 3. Stage 4 UI 入场 (带有方向感的滑入)
+  tl.set(".ui-stage-4", { opacity: 1 }, "stage4");
+  tl.fromTo([".stage4-title", ".ui-stage-4 .callout"],
+      // 标题从左 (-30) 划入，参数从右 (30) 划入，形成向中心聚拢的视觉
+      { opacity: 0, x: (i) => i === 0 ? -30 : 30 }, 
+      { opacity: 1, x: 0, duration: 0.8, ease: "power2.out", stagger: 0.2 },
+      "stage4+=0.8" // 等模型转得差不多了再出字
+  );
+
+  tl.addLabel("stage5", 4.9);
+  
+  // ==========================================================
+  // 【精细化拆解版】Stage 5: 分离、180度自转，然后合体重构
+  // ==========================================================
+  
+  // A. 【公共动作】(Start immediately at 4.9)
+  
+  // 1. UI 清场，保证视觉干净
+  tl.to(".ui-stage-4", { opacity: 0, duration: 0.5 }, "stage5");
+
+  // --- 🆕 [新增子阶段 5.1]: 分离与 180 度自转 ---
+  const subStage1Duration = 1.0; // 分离和自转持续 1 秒
+  // 文字消失 0.5 秒后再开始动作，更有层次
+  const separationStart = "stage5+=0.5"; 
+  tl.addLabel("separation_phase", separationStart);
+  
+  // (这些分离坐标是预留占位符，请用户务必根据 GUI 面板调优数值！)
+  // 我们设定它们向两侧移动，并微微飞向镜头前方 (Z增加)
+  const separationPosL = { x: -0.5, y: 5.97, z: 12.0 }; // 左晶圆分离点
+  const separationPosR = { x: 3.0, y: 5.97, z: 12.0 };  // 右晶圆分离点
+  
+  // 左晶圆 (灰色): 移动分离 + Y轴转180度 (从0 -> Math.PI)
+  tl.to(earbudLeft.position, { 
+      ...separationPosL, 
+      duration: subStage1Duration, 
+      ease: "power2.inOut" 
+  }, "separation_phase")
+    .to(earbudLeft.rotation, { 
+      // ⚠️ 【GUI 调试点】：这里我用了 Math.PI 来代表 180 度。
+      // 请根据你的 GUI 调试面板，确定一个完美的 xyz 翻转角度！
+      x: Math.PI / 2, // 保持薄膜晶圆特写时的 X 轴正对镜头
+      y: Math.PI,     // 完成 180 度自转
+      z: 0.1,         // 保持一点 Z 轴微调
+      duration: subStage1Duration, 
+      ease: "power2.inOut" 
+    }, "separation_phase");
+    
+  // 右晶圆 (青蓝色): 移动分离 + Y轴反向转180度 (从0 -> -Math.PI)
+  tl.to(earbudRight.position, { 
+      ...separationPosR, 
+      duration: subStage1Duration, 
+      ease: "power2.inOut" 
+    }, "separation_phase")
+    .to(earbudRight.rotation, { 
+      x: Math.PI / 2,
+      y: -Math.PI,    // 反向自转，更有视觉冲击
+      z: 0.1, 
+      duration: subStage1Duration, 
+      ease: "power2.inOut" 
+    }, "separation_phase");
+    
+
+  // --- [接续子阶段 5.2]: 核心合体与材质网格 (原本逻辑的链接点) ---
+  // 等预备分离动作完成后 (separationStart + subStage1Duration) 再开始
+  const mergeStartTag = `separation_phase+=${subStage1Duration}`;
+  tl.addLabel("merge_phase", mergeStartTag);
+  
+  // (使用用户提供的精确 GUI 调试后的坐标)
+  const mergePos = { x: 1.67, y: 5.97, z: 11 }; 
+
+  // 3. 【核心动作】模型从分离点移动到画面中心重合合体
+  
+  // 左晶圆 (灰色主角) 从 separationPosL 移动到合体中心
+  tl.to(earbudLeft.position, {
+      x: mergePos.x + 0.28,
+      y: mergePos.y,
+      z: mergePos.z,
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "merge_phase")
+  .to(earbudLeft.rotation, {
+      // 从 Math.PI (180度) 旋转回用户设定的最终合并角度 (Math.PI/2)
+      x: 0,
+      y: Math.PI / 2, 
+      z: 0.1, 
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "merge_phase");
+
+  // 右晶圆 (青蓝色主角) 从 separationPosR 移动到合体中心
+  tl.to(earbudRight.position, {
+      x: mergePos.x,
+      y: mergePos.y,
+      z: mergePos.z + 0.09, // 保留用户原本的 Z-fighting 闪烁修正
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "merge_phase")
+  .to(earbudRight.rotation, {
+      // 从 -Math.PI 旋转回 0
+      x: Math.PI / 2, 
+      y: 0,
+      z: 0.1, 
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "merge_phase");
+
+  // 4. 材质突变 (合并成深色圆盘)
+  // 在合体动作开始 0.5 秒后再变色，更有层次
+  
+  // 🌟 【核心修复 2】：使用 leftMat 和 rightMat
+  tl.to(leftMat.color, {
+      r: 0.05, g: 0.05, b: 0.05, // 接近黑色，模拟深色圆盘
+      duration: 1.0,
+      ease: "power2.out"
+  }, "merge_phase+=0.5");
+
+  tl.to(rightMat.color, {
+      r: 0.05, g: 0.05, b: 0.05, 
+      duration: 1.0,
+      ease: "power2.out"
+  }, "merge_phase+=0.5")
+  // 彻底关闭青蓝色自发光 (Emissive)
+  .to(rightMat.emissive, {
+      r: 0, g: 0, b: 0, 
+      duration: 1.0,
+      ease: "power2.out"
+  }, "merge_phase+=0.5");
+
+  // 5. 背景几何网格突显 (和 Merge 动作同步拉近)
+  tl.to(sphericalGridGroup.scale, {
+      x: 1.6, y: 1.6, z: 1.6, // 拉近并放大网格系统
+      duration: 2.0,
+      ease: "power3.inOut"
+  }, "merge_phase")
+  .to(sphericalGridGroup.children[0].material, {
+      opacity: 1.0, // 确保网格彻底显现
+      duration: 1.5,
+      ease: "power2.inOut"
+  }, "merge_phase");
+
+  // 为最终归仓预留标签
+  tl.addLabel("stage6", 8.9);
+
+  // ==========================================================
+  // Stage 6: 坠落归仓，命运闭环 (重回初始状态)
+  // ==========================================================
+  
+  // 恢复晶圆的初始物理材质颜色 (假设模型基础色为纯白/金属原色)
+  tl.to(leftMat.color, { r: 1, g: 1, b: 1, duration: 1.0 }, "stage6")
+    .to(rightMat.color, { r: 1, g: 1, b: 1, duration: 1.0 }, "stage6");
+
+  // 2. 晶圆从高空坠落，并分离回到各自的局部初始坐标与角度
+  tl.to(earbudLeft.position, { 
+      ...w1Initial.pos, 
+      duration: 1.8, 
+      ease: "power3.inOut" // 慢起步，快下落，慢刹车
+  }, "stage6")
+  .to(earbudLeft.rotation, { 
+      ...w1Initial.rot, 
+      duration: 1.8, 
+      ease: "power3.inOut" 
+  }, "stage6");
+
+  tl.to(earbudRight.position, { 
+      ...w2Initial.pos, 
+      duration: 1.8, 
+      ease: "power3.inOut" 
+  }, "stage6")
+  .to(earbudRight.rotation, { 
+      ...w2Initial.rot, 
+      duration: 1.8, 
+      ease: "power3.inOut" 
+  }, "stage6");
+
+  // 3. 盒子主体从 -15 的深渊升起，迎接落下的晶圆
+  // 我们将盒子恢复到接近开场时居中大气的姿态 (数值可配合 GUI 微调)
+  const finalBoxPos = { x: 0, y: 1.6, z: 2.62 }; 
+  const finalBoxRot = { x: 0.3, y: 0, z: 0 }; // 微微带点俯视角度，显得极其端庄
+  
+  tl.to(modelGroup.position, { 
+      ...finalBoxPos, 
+      duration: 1.8, 
+      ease: "power3.inOut" 
+  }, "stage6")
+  .to(modelGroup.rotation, { 
+      ...finalBoxRot, 
+      duration: 1.8, 
+      ease: "power3.inOut" 
+  }, "stage6");
+
+  // 4. 点睛之笔：机械关盖！
+  // 故意滞后于晶圆下落动作，等晶圆几乎落稳了，“啪”地关上
+  tl.to(caseLid.rotation, {
+      x: lidInitialRot, // 恢复到严丝合缝的初始闭合角度
+      duration: 0.6,
+      ease: "bounce.out" // 【灵魂 Ease】：加入物理反弹效果，模拟清脆的机械关盒声！
+  }, "stage6+=1.3");
+
+  // 5. 首尾呼应：UI 命运的闭环
+  // 开场的 "xMR晶圆 专业提供者" 文字与 Icon 重新淡入
+  tl.fromTo(".ui-stage-1", 
+      { opacity: 0, filter: 'blur(10px)', scale: 1.1 }, // 带有微微失焦感的重现
+      { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 1.2, ease: "power2.out" }, 
+      "stage6+=1.5" // 等盒子完全关上后再优雅浮现
+  );
 }
 
 
