@@ -275,7 +275,6 @@ header {
 }
 
 .progress-ring {
-  /* 初始逆时针旋转 90 度，让进度从正上方 (12点钟方向) 开始 */
   transform: rotate(-90deg);
 }
 
