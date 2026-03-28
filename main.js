@@ -40,30 +40,43 @@ let meteorMeshes = [];
 const modelGroup = new THREE.Group();
 scene3D.add(modelGroup);
 let caseLid, earbudLeft, earbudRight;
+let magicFollowLight;
 let lidInitialRot = 0; // 记录盖子初始角度
 
 // ==========================================
-// 1.2 灯光系统 (戏剧性光影)
+// 1.2 灯光系统 (8灯无死角影棚矩阵)
 // ==========================================
-// 极暗环境光 (保留15%基础亮度，避免死黑)
-scene3D.add(new THREE.AmbientLight(0xffffff, 0.15));
 
-// 主光源
-const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-mainLight.position.set(5, 5, 5);
-scene3D.add(mainLight);
+// 1. 基础全局环境光：强行提升整个场景的暗部底色，确保绝对没有“死黑”
+scene3D.add(new THREE.AmbientLight(0xbeddf8, 0.8));
 
-// 核心轮廓光（侧后方冷蓝光，塑造边缘）
-const rimLight = new THREE.DirectionalLight(0x41a5ff, 5);
-rimLight.position.set(-5, 5, -5);
-scene3D.add(rimLight);
+// 2. 8点矩阵光源配置 (按照甲方要求，全部使用 #BEDDF8)
+const lightColor = 0xbeddf8;
+const baseIntensity = 1.5; // 基础光强，可根据实际明暗微调
 
-// 补光（底部微弱蓝光）
-const fillLight = new THREE.DirectionalLight(0x112244, 2);
-fillLight.position.set(0, -5, 2);
-scene3D.add(fillLight);
+// 我们建立一个 8 盏灯的包围矩阵，分别位于模型的 8 个斜角
+// 为了打破死板，同侧的灯光角度（高低、远近）特意做了一些随机错开
+const lightPositions = [
+  { x: 8, y: 8, z: 8, intensity: baseIntensity * 1.2 }, // 前上右 (主光，稍微亮一点)
+  { x: -7, y: 9, z: 6, intensity: baseIntensity },       // 前上左 (略高)
+  { x: 6, y: -6, z: 7, intensity: baseIntensity * 0.8 }, // 前下右 (底光稍弱)
+  { x: -8, y: -7, z: 5, intensity: baseIntensity * 0.9 }, // 前下左
 
-// 镜头控制器
+  { x: 7, y: 6, z: -8, intensity: baseIntensity },       // 后上右 (勾勒边缘)
+  { x: -9, y: 8, z: -7, intensity: baseIntensity },       // 后上左
+  { x: 5, y: -8, z: -6, intensity: baseIntensity * 0.7 }, // 后下右
+  { x: -6, y: -5, z: -9, intensity: baseIntensity * 0.8 }  // 后下左
+];
+
+lightPositions.forEach((config) => {
+  const dirLight = new THREE.DirectionalLight(lightColor, config.intensity);
+  dirLight.position.set(config.x, config.y, config.z);
+  scene3D.add(dirLight);
+});
+
+// ==========================================
+// 镜头控制器 (OrbitControls)
+// ==========================================
 const controls3D = new OrbitControls(camera3D, renderer3D.domElement);
 controls3D.enableDamping = true;
 controls3D.dampingFactor = 0.05;
@@ -87,10 +100,12 @@ lineGeo.setPositions(wireframeGeo.attributes.position.array);
 
 // 设置粗线材质 (关闭透明度防止交叉过曝)
 window.gridLineMat = new LineMaterial({
-  opacity: 0.3,
-  color: 0x0e223c, // 暗夜蓝
-  linewidth: 2.5,
-  transparent: false, // 杜绝颜色叠加
+  // 颜色稍微提亮一点点，因为加了透明度后整体视觉会变暗
+  color: 0x1a457b,
+  linewidth: 20,
+  transparent: true,
+  opacity: 0.03,
+  depthWrite: false,
   resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
 });
 
@@ -216,6 +231,11 @@ loadingTl.to('.loader__circle', {
 // 3. 模型加载与开场动画挂载
 // ==========================================
 const gltfLoader = new GLTFLoader();
+
+// 🌟【新增】：在外部加载 AO 贴图 (请确保 image_860002.png 在你的正确目录下)
+const textureLoader = new THREE.TextureLoader();
+const aoMapTexture = textureLoader.load('./AO.png');
+aoMapTexture.flipY = false;
 gltfLoader.load(
   './box1.glb',
   (gltf) => {
@@ -235,19 +255,52 @@ gltfLoader.load(
     // 遍历寻找我们需要的部件 (更新为新命名)
     realModel.traverse((child) => {
       if (child.name === 'Case_Lid') caseLid = child;
+
+      // 🌟【新增】：为所有模型挂载 AO 贴图提升厚重感
+      if (child.isMesh && child.material) {
+        // 确保模型有第二套 UV 用于 AO 贴图
+        if (!child.geometry.attributes.uv2 && child.geometry.attributes.uv) {
+          child.geometry.setAttribute('uv2', new THREE.BufferAttribute(child.geometry.attributes.uv.array, 2));
+        }
+        child.material.aoMap = aoMapTexture;
+        child.material.aoMapIntensity = 1.0;
+        child.material.envMapIntensity = 1.5;
+      }
+      // 🎧 右晶圆 (薄膜晶圆) - 注入专属参数与灯光
       if (child.name === 'Waferright') {
         earbudRight = child;
         // 【核心新增】：克隆材质，让右晶圆拥有独立的材质，以便后续用 GSAP 单独给它变色！
         if (child.material) {
           child.material = child.material.clone();
         }
-      }
-      if (child.name === 'Waferleft') earbudLeft = child;
 
-      if (child.isMesh && child.material) {
-        child.material.roughness = 0.35;
-        child.material.metalness = 0.6;
-        child.material.envMapIntensity = 1.5;
+        // 参数：颜色(科技深蓝), 亮度(极高，因为要压过环境光), 衰减距离(8，只照亮自己)
+        magicFollowLight = new THREE.PointLight(0x0055ff, 365, 8);
+
+        // 核心站位：x设为负数(放在晶圆左侧), z微微凸出(贴着表面扫光，照出网格颗粒)
+        magicFollowLight.position.set(-1.56, 0.66, -0.29);
+
+        // 绑定父子关系：让灯光成为晶圆的子元素！晶圆飞到哪、怎么转，灯就死死跟到哪！
+        child.add(magicFollowLight);
+
+        // 🌟 直接在这里添加 GUI！因为此时模型 100% 加载完成了
+        // 注意：确保外面已经初始化了 gui 变量 (比如 const gui = new GUI();)
+        if (typeof gui !== 'undefined') {
+          const debugFolder = gui.addFolder('晶圆特写光影调试');
+          debugFolder.add(magicFollowLight.position, 'x', -10, 10).name('灯光左右(X)');
+          debugFolder.add(magicFollowLight.position, 'z', -5, 5).name('灯光前后(Z)');
+          debugFolder.add(magicFollowLight, 'intensity', 0, 500).name('灯光亮度');
+          debugFolder.add(earbudRight.material, 'roughness', 0, 1).name('表面粗糙度');
+        }
+      }
+      // 🎧 左晶圆 (核心晶圆) - 注入专属参数
+      if (child.name === 'Waferleft') {
+        earbudLeft = child;
+        if (child.material) {
+          // 注入 3D 老师的精确参数：金属度 0.8，粗糙度 0.3
+          child.material.metalness = 0.8;
+          child.material.roughness = 0.3;
+        }
       }
     });
 
@@ -261,8 +314,8 @@ gltfLoader.load(
     // 将 3D 动作追加进 loadingTl
     loadingTl
       // 【修改 1】在 Loading 圆环退场后，提前把 stage2-el（包含导航栏、底栏、空UI容器）淡入进来。
-      // 注意：此时 .ui-stage-1 本身还是 opacity: 0 的，所以文字此时依然看不见，保持干爽。
-      .to('.stage2-el', { opacity: 1, duration: 1 }, "<0.5")
+      // 注意：此时 .ui-stage-1 本身还是 opacity: 0 的，所以文字此时依然看不见，保持干爽。原值为1
+      .to('.stage2-el', { opacity: 1, duration: 0.2 }, "<0.5")
 
       // 瞬间显示网格与粒子
       .set(sphericalGridGroup, { visible: true }, "<")
@@ -368,7 +421,7 @@ function initScrollTimeline() {
         snapTo: "labels",
         delay: 0.1,
         ease: "power2.inOut",
-        duration: { min: 0.2, max: 0.8 } 
+        duration: { min: 0.2, max: 0.8 }
       },
       onUpdate: (self) => {
         // 1. 常规的圆环进度更新 (只在非自动播放时执行)
@@ -404,7 +457,7 @@ function initScrollTimeline() {
   tl.to(earbudLeft.position, {
     y: w1Initial.pos.y + 0.5,
     z: w1Initial.pos.z + 1,
-    duration: 1.2, ease: "power1.inOut"
+    duration: 1.7, ease: "power1.inOut"
   }, "stage1+=0.3");
 
 
@@ -418,14 +471,19 @@ function initScrollTimeline() {
   tl.to(modelGroup.position, { x: -3.5, y: -8.5, z: 1.5, duration: 0.6, ease: "power2.out" }, "stage2")
     .to(modelGroup.rotation, { z: 0.2, duration: 0.6, ease: "power2.out" }, "stage2");
 
-  tl.to(earbudLeft.position, { x: 1.5, y: w1Initial.pos.y + 8, z: w1Initial.pos.z + 4, duration: 1, ease: "power2.out" }, "stage2")
-    .to(earbudLeft.rotation, { x: Math.PI / 2, y: 0, z: 0.1, duration: 1, ease: "power2.out" }, "stage2");
+  // 上升加旋转
+  tl.to(earbudLeft.position, { x: 1.4, y: w1Initial.pos.y + 7, z: w1Initial.pos.z + 8, duration: 0.9, ease: "power2.out" }, "stage2")
+    .to(earbudLeft.rotation, { x: Math.PI, y: Math.PI, z: 0.1, duration: 0.9, ease: "power2.out" }, "stage2");
 
-  tl.to(earbudLeft.position, { x: 2, y: w1Initial.pos.y + 6.9, z: w1Initial.pos.z + 7, duration: 0.9, ease: "power2.out" }, "stage2+=1")
-    .to(earbudLeft.rotation, { x: Math.PI / 2, y: Math.PI / 2, z: 0.1, duration: 0.9, ease: "power2.out" }, "stage2+=1");
+  // 向下移动 角度不变 
+  tl.to(earbudLeft.position, { x: 2, y: w1Initial.pos.y + 8.5, z: w1Initial.pos.z + 4, duration: 0.1, ease: "power2.out" }, "stage2+=0.9")
 
-  tl.to(earbudRight.position, { x: 1.5, y: w2Initial.pos.y + 7.0, z: w2Initial.pos.z + 7, duration: 1.6, ease: "power2.out" }, "stage2+=0.3")
-    .to(earbudRight.rotation, { x: 12.2, y: -9.63, z: -0.2, duration: 1.6, ease: "power2.out" }, "stage2+=0.3");
+  // 到图片阶段的最终状态
+  tl.to(earbudLeft.position, { x: 0.69, y: 6.07, z: w1Initial.pos.z + 8.8, duration: 0.9, ease: "power2.out" }, "stage2+=1")
+    .to(earbudLeft.rotation, { x: 2.70, y: -2.42159265358979, duration: 0.9, ease: "power2.out" }, "stage2+=1");
+
+  tl.to(earbudRight.position, { x: 1.4, y: 5.42, z: w2Initial.pos.z + 8.8, duration: 1.6, ease: "power2.out" }, "stage2+=0.3")
+    .to(earbudRight.rotation, { x: -0.181592653589793, y: Math.PI + 0.438407346410207, z: 1.97840734641021, duration: 1.6, ease: "power2.out" }, "stage2+=0.3");
 
 
   // ------------------------------------------
@@ -434,14 +492,19 @@ function initScrollTimeline() {
   tl.addLabel("stage3", 4.0); // 间隔 2 秒
 
   tl.to(".ui-stage-2", { opacity: 0, duration: 0.4 }, "stage3");
-  tl.set(".ui-stage-3", { opacity: 1 }, "stage3");
+  tl.set(".ui-stage-3", { opacity: 1 }, "stage3+=0.1");
 
   tl.fromTo([".stage3-title", ".callout"], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, "stage3+=0.2");
   tl.fromTo(".spec-item", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out", stagger: 0.15 }, "stage3+=0.4");
 
-  tl.to(earbudLeft.rotation, { x: 0, y: 0, z: -0.2, duration: 1.3, ease: "power2.out" }, "stage3");
-  tl.to(earbudRight.rotation, { x: 0, y: 0, z: -0.2, duration: 1.3, ease: "power2.out" }, "stage3");
+  tl.to(earbudLeft.position, { x: 0.1, y: 6.07, duration: 0.3, ease: "power2.out" }, "stage3")
+  tl.to(earbudRight.position, { x: 2.8, y: 5.34, duration: 1.3, ease: "power2.out" }, "stage3")
 
+  tl.to(earbudLeft.position, { x: 0.98, y: 6.22, z: w1Initial.pos.z + 8, duration: 0.3, ease: "power2.out" }, "stage3+=0.3")
+    .to(earbudLeft.rotation, { x: 0, y: Math.PI * 2 + 0.5184, z: -0.2, duration: 1.3, ease: "power2.out" }, "stage3+=0.3");
+
+  tl.to(earbudRight.position, { x: 1.33, y: 5.34, z: w2Initial.pos.z + 8.9, duration: 1.3, ease: "power2.out" }, "stage3+=0.3")
+    .to(earbudRight.rotation, { x: 2.13840734641021, y: -Math.PI, z: -0.801592653589793, duration: 1.3, ease: "power2.out" }, "stage3+=0.3");
 
   // ------------------------------------------
   // Stage 4: 晶圆横移换位与薄膜晶圆特写
@@ -450,11 +513,18 @@ function initScrollTimeline() {
 
   tl.to(".ui-stage-3", { opacity: 0, duration: 0.4 }, "stage4");
 
-  tl.to(earbudLeft.position, { x: 0.9, z: w1Initial.pos.z + 8, duration: 1.5, ease: "power2.inOut" }, "stage4")
-    .to(earbudLeft.rotation, { x: Math.PI / 2, y: 0, z: 0, duration: 1.5, ease: "power2.inOut" }, "stage4");
+  // 分离阶段
+  tl.to(earbudLeft.position, { x: -0.32, duration: 0.5, ease: "power2.out" }, "stage4")
+    .to(earbudLeft.rotation, { x: 0, y: Math.PI * 2 + 0.9, z: 0, duration: 0.5, ease: "power2.out" }, "stage4");
 
-  tl.to(earbudRight.position, { x: 0.9, y: 5.3, z: w2Initial.pos.z + 10, duration: 1.5, ease: "power2.inOut" }, "stage4")
-    .to(earbudRight.rotation, { x: 0.748, y: 0.12, z: 0.97, duration: 1.5, ease: "power2.inOut" }, "stage4");
+  tl.to(earbudRight.position, { x: 2, duration: 0.4, ease: "power2.out" }, "stage4+=0.1")
+    .to(earbudRight.rotation, { z: -1.32159265358979, duration: 0.4, ease: "power2.out" }, "stage4+=0.1")
+
+  tl.to(earbudLeft.position, { x: 0.68, y: 5.17, z: w1Initial.pos.z + 10.5, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.5")
+    .to(earbudLeft.rotation, { x: -0.12159, y: Math.PI * 2 + 0.5184, z: -0.411, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.5");
+
+  tl.to(earbudRight.position, { x: 0.61, y: 5.93, z: w2Initial.pos.z + 8.6, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.7")
+    .to(earbudRight.rotation, { y: -2.93, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.7");
 
   tl.set(".ui-stage-4", { opacity: 1 }, "stage4");
   tl.fromTo([".stage4-title", ".ui-stage-4 .callout"],
@@ -463,7 +533,7 @@ function initScrollTimeline() {
 
 
   // ------------------------------------------
-  // Stage 5: 无缝连续的分离与重构合体
+  // Stage 5: 无缝连续的分离与防穿模重构合体
   // ------------------------------------------
   tl.addLabel("stage5", 8.0); // 间隔 2 秒
 
@@ -472,160 +542,181 @@ function initScrollTimeline() {
   // 坐标定义
   const separationPosL = { x: -0.5, y: 5.97, z: 12.0 };
   const separationPosR = { x: 3.0, y: 5.97, z: 12.0 };
-  const mergePosL = { x: 1.67 + 0.28, y: 5.97, z: 11 };
+  const mergePosL = { x: 1.67 + 0.28, y: 5.97, z: 10.9 };
   const mergePosR = { x: 1.67, y: 5.97, z: 11 + 0.09 };
 
-  // 🚀 【魔法实现】：左晶圆分离后无缝衔接合体
-  // 使用 ">" 符号，告诉 GSAP 紧跟着上一个动作直接执行
-  tl.to(earbudLeft.position, { ...separationPosL, duration: 1.2, ease: "power2.out" }, "stage5+=0.5")
-    .to(earbudLeft.position, { ...mergePosL, duration: 1.6, ease: "power2.inOut" }, ">");
+  // 🌟【新增】：防穿模“预备对齐位” (Y和Z已经到位，但X轴拉开距离)
+  const preMergePosL = { x: mergePosL.x - 1.5, y: mergePosL.y, z: mergePosL.z };
+  const preMergePosR = { x: mergePosR.x + 1.5, y: mergePosR.y, z: mergePosR.z };
 
-  tl.to(earbudLeft.rotation, { x: Math.PI / 2, y: Math.PI, z: 0.1, duration: 1.2, ease: "power2.out" }, "stage5+=0.5")
-    .to(earbudLeft.rotation, { x: 0, y: Math.PI / 2, z: 0.1, duration: 1.6, ease: "power2.inOut" }, ">");
+  // 1. 分离阶段：向两侧散开并进行 180度翻转
+  tl.to(earbudLeft.position, { ...separationPosL, duration: 1.0, ease: "power2.out" }, "stage5+=0.5")
+    .to(earbudLeft.rotation, { x: Math.PI / 2, y: Math.PI, z: 0.1, duration: 1.0, ease: "power2.out" }, "stage5+=0.5");
 
-  // 🚀 右晶圆也是一气呵成
-  tl.to(earbudRight.position, { ...separationPosR, duration: 1.2, ease: "power2.out" }, "stage5+=0.5")
-    .to(earbudRight.position, { ...mergePosR, duration: 1.6, ease: "power2.inOut" }, ">");
+  tl.to(earbudRight.position, { ...separationPosR, duration: 1.0, ease: "power2.out" }, "stage5+=0.5")
+    .to(earbudRight.rotation, { x: Math.PI / 2, y: -Math.PI, z: 0.1, duration: 1.0, ease: "power2.out" }, "stage5+=0.5");
 
-  tl.to(earbudRight.rotation, { x: Math.PI / 2, y: -Math.PI, z: 0.1, duration: 1.2, ease: "power2.out" }, "stage5+=0.5")
-    .to(earbudRight.rotation, { x: Math.PI / 2, y: 0, z: 0.1, duration: 1.6, ease: "power2.inOut" }, ">");
+  // 2. 预备对齐阶段：飞到结合点两侧，完成所有旋转动作 (不再穿模)
+  tl.to(earbudLeft.position, { ...preMergePosL, duration: 1.0, ease: "power2.inOut" }, "stage5+=1.5")
+    .to(earbudLeft.rotation, { x: 0, y: Math.PI / 2, z: 0.1, duration: 1.0, ease: "power2.inOut" }, "stage5+=1.5");
 
-  // 材质渐暗与网格拉近 (配合合体阶段开始：分离1.2秒，所以在 0.5+1.2 = stage5+=1.7 开始融合)
-  const mergeImpactTime = "stage5+=1.7";
-  tl.to(leftMat.color, { r: 0.05, g: 0.05, b: 0.05, duration: 1.0, ease: "power2.out" }, mergeImpactTime);
-  tl.to(rightMat.color, { r: 0.05, g: 0.05, b: 0.05, duration: 1.0, ease: "power2.out" }, mergeImpactTime);
-  tl.to(rightMat.emissive, { r: 0, g: 0, b: 0, duration: 1.0, ease: "power2.out" }, mergeImpactTime);
+  tl.to(earbudRight.position, { ...preMergePosR, duration: 1.0, ease: "power2.inOut" }, "stage5+=1.5")
+    .to(earbudRight.rotation, { x: Math.PI / 2, y: 0, z: 0.1, duration: 1.0, ease: "power2.inOut" }, "stage5+=1.5");
 
-  tl.to(sphericalGridGroup.scale, { x: 1.6, y: 1.6, z: 1.6, duration: 2.0, ease: "power3.inOut" }, mergeImpactTime);
-  tl.to(sphericalGridGroup.children[0].material, { opacity: 1.0, duration: 1.5, ease: "power2.inOut" }, mergeImpactTime);
+  // 3. 最终结合阶段：姿态已定，只移动 X 轴，像磁铁一样“啪”地吸附！
+  tl.to(earbudLeft.position, { x: mergePosL.x, duration: 0.5, ease: "power3.in" }, "stage5+=2.5")
+    .to(earbudRight.position, { x: mergePosR.x, duration: 0.5, ease: "power3.in" }, "stage5+=2.5");
 
+  // 4. 材质变色与网格拉近 (配合最后 X 轴贴合的瞬间触发)
+  const mergeImpactTime = "stage5+=2.5";
+  tl.to(leftMat.color, { r: 0.05, g: 0.05, b: 0.05, duration: 0.6, ease: "power2.out" }, mergeImpactTime);
+  tl.to(rightMat.color, { r: 0.05, g: 0.05, b: 0.05, duration: 0.6, ease: "power2.out" }, mergeImpactTime);
+  tl.to(rightMat.emissive, { r: 0, g: 0, b: 0, duration: 0.6, ease: "power2.out" }, mergeImpactTime);
+
+  tl.to(sphericalGridGroup.scale, { x: 1.6, y: 1.6, z: 1.6, duration: 1.5, ease: "power3.inOut" }, mergeImpactTime);
+  tl.to(sphericalGridGroup.children[0].material, { duration: 1.5, ease: "power2.inOut" }, mergeImpactTime);
 
   // ==========================================================
-  // Stage 6: [终极精细版] 坠落归仓，机械闭环
+  // Stage 6: [完美防出画 + 优雅翻转] 坠落归仓，命运闭环
   // ==========================================================
-  tl.addLabel("stage6", 11.0); 
+  tl.addLabel("stage6", 11.0);
 
-  // 1. 材质变亮与盒子升起接应
-  tl.to(leftMat.color, { r: 1, g: 1, b: 1, duration: 0.8 }, "stage6")
-    .to(rightMat.color, { r: 1, g: 1, b: 1, duration: 0.8 }, "stage6");
+  // 1. 材质变亮 (耗时 0.6 秒)
+  tl.to(leftMat.color, { r: 1, g: 1, b: 1, duration: 0.6 }, "stage6")
+    .to(rightMat.color, { r: 1, g: 1, b: 1, duration: 0.6 }, "stage6");
 
-  const finalBoxPos = { x: 0, y: 1.6, z: 2.62 }; 
-  const finalBoxRot = { x: 0.3, y: 0, z: 0 }; 
-  tl.to(modelGroup.position, { ...finalBoxPos, duration: 2.2, ease: "power2.inOut" }, "stage6")
-    .to(modelGroup.rotation, { ...finalBoxRot, duration: 2.2, ease: "power2.inOut" }, "stage6");
+  // 2. 高空预分离 (耗时 0.6 秒，为后续的安全翻转腾出空间)
+  tl.to(earbudLeft.position, { x: mergePosL.x - 1.5, duration: 0.6, ease: "power2.out" }, "stage6+=0.2")
+    .to(earbudRight.position, { x: mergePosR.x + 1.5, duration: 0.6, ease: "power2.out" }, "stage6+=0.2");
 
-  tl.addLabel("stage6_falling", 12.2);
+  // ==========================================
+  // 🌟【核心优化 1】：盒子推迟升空 (接应动作)
+  // 让晶圆先掉，盒子在 stage6+=1.0 (晶圆下落中途) 才开始猛烈升起“接住”它们
+  // 这样能确保晶圆绝对不会被顶出屏幕画面！
+  // ==========================================
+  const finalBoxPos = { x: 0, y: 1.6, z: 2.62 };
+  const finalBoxRot = { x: 0.3, y: 0, z: 0 };
+  const boxUpStart = "stage6+=1.0"; // 延迟升空时间
 
-  // 2. 晶圆坠落
-  const fallActionTime = 2.0; 
-  const mainSpinTime = 1.4;  
-  const settleTime = 0.6;    
+  tl.to(modelGroup.position, { ...finalBoxPos, duration: 1.2, ease: "power2.inOut" }, boxUpStart)
+    .to(modelGroup.rotation, { ...finalBoxRot, duration: 1.2, ease: "power2.inOut" }, boxUpStart);
 
-  tl.to(earbudLeft.position, { 
-      x: w1Initial.pos.x, y: w1Initial.pos.y, z: w1Initial.pos.z,
-      duration: fallActionTime, ease: "power2.in" 
-  }, "stage6")
-  .to(earbudRight.position, { 
+  // ==========================================
+  // 🌟【核心优化 2】：下坠与优雅翻滚
+  // ==========================================
+  const fallStart = "stage6+=0.6";
+  const fallActionTime = 1.6; // 下坠总时长依然是 1.6s
+
+  // A. 位置：带有重力加速度的下落 (直接落入卡槽)
+  tl.to(earbudLeft.position, {
+    x: w1Initial.pos.x, y: w1Initial.pos.y, z: w1Initial.pos.z,
+    duration: fallActionTime, ease: "power2.in"
+  }, fallStart)
+    .to(earbudRight.position, {
       x: w2Initial.pos.x, y: w2Initial.pos.y, z: w2Initial.pos.z,
-      duration: fallActionTime, ease: "power2.in" 
-  }, "stage6");
+      duration: fallActionTime, ease: "power2.in"
+    }, fallStart);
 
-  // 3. 坠落中的疯狂自转
-  tl.addLabel("spin_start", "stage6+=0.2"); 
-  tl.to(earbudLeft.rotation, { 
-      y: "+=" + (Math.PI * 4), duration: mainSpinTime, ease: "power3.out" 
-  }, "spin_start")
-  .to(earbudRight.rotation, { 
-      y: "-=" + (Math.PI * 4), duration: mainSpinTime, ease: "power3.out" 
-  }, "spin_start+=0.15");
+  // B. 角度动作 1：下落前段的“优雅翻滚” (耗时 1.0s)
+  // 因为它们已经左右分开了，这时候绕 Y 轴翻转 180 度，就像硬币翻滚，绝不穿模
+  tl.to(earbudLeft.rotation, {
+    y: "+=" + Math.PI, // 翻转 180度
+    duration: 1.0, ease: "power1.inOut"
+  }, fallStart)
+    .to(earbudRight.rotation, {
+      y: "-=" + Math.PI, // 反向翻转 180度，增加对称美感
+      duration: 1.0, ease: "power1.inOut"
+    }, fallStart);
 
-  // 4. 精准对齐卡槽
-  const settleRotStart = `spin_start+=${mainSpinTime}`;
-  tl.addLabel("settle_rot", settleRotStart);
-  tl.to(earbudLeft.rotation, { 
-      x: w1Initial.rot.x, y: w1Initial.rot.y, z: w1Initial.rot.z,
-      duration: settleTime, ease: "back.out(1.7)" 
-  }, "settle_rot")
-  .to(earbudRight.rotation, { 
+  // C. 角度动作 2：下落后段的“精准回正” (耗时 0.6s)
+  // 在即将落入卡槽的最后瞬间，强制干脆地吸附到初始角度
+  tl.to(earbudLeft.rotation, {
+    x: w1Initial.rot.x, y: w1Initial.rot.y, z: w1Initial.rot.z,
+    duration: 0.6, ease: "back.out(1.2)" // 带有微弱机械反弹感的回正
+  }, "stage6+=1.6")
+    .to(earbudRight.rotation, {
       x: w2Initial.rot.x, y: w2Initial.rot.y, z: w2Initial.rot.z,
-      duration: settleTime, ease: "back.out(1.7)" 
-  }, "settle_rot");
+      duration: 0.6, ease: "back.out(1.2)"
+    }, "stage6+=1.6");
 
-  // 5. 灵魂关盖与开场 UI 重现 (真正执行关盖动作的地方！)
+  // 4. 灵魂关盖
   const lidClosureTime = "stage6+=2.2";
   tl.to(caseLid.rotation, {
-      x: lidInitialRot, 
-      duration: 0.6,
-      ease: "bounce.out" 
-  }, lidClosureTime); 
+    x: lidInitialRot,
+    duration: 0.6,
+    ease: "bounce.out"
+  }, lidClosureTime);
 
-  tl.fromTo(".ui-stage-1", 
-      { opacity: 0, filter: 'blur(10px)', scale: 1.1 }, 
-      { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 1.2, ease: "power2.out" }, 
-      "stage6+=2.4" 
+  // 5. 开场 UI 重现
+  tl.fromTo(".ui-stage-1",
+    { opacity: 0, filter: 'blur(10px)', scale: 1.1 },
+    { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 1.2, ease: "power2.out" },
+    "stage6+=2.4"
   );
-  tl.addLabel("stage_final", 14.6);
+
+  // 【界碑】：Stage 6 结束点，用于无缝闭环判定
+  tl.addLabel("stage6_end", 14.6);
 
   // ==========================================================
   // 🌟 独立的电影级自动过场 (脱离鼠标滚轮控制)
   // ==========================================================
   function playCinematicLoop() {
-      isAutoLooping = true; 
-      
-      const st = ScrollTrigger.getById("mainScroll");
-      if (st) st.disable(false); // 接管滚轮
+    isAutoLooping = true;
 
-      const circleEl = document.querySelector('.progress-ring__circle');
-      const radius = circleEl.r.baseVal.value;
-      const circumference = radius * 2 * Math.PI;
+    const st = ScrollTrigger.getById("mainScroll");
+    if (st) st.disable(false); // 接管滚轮
 
-      const loopTl = gsap.timeline({
-          onComplete: () => {
-              // 时空跃迁：无痕跳回顶部
-              window.scrollTo(0, 0); 
-              tl.progress(0);        
-              
-              if (st) {
-                  st.enable();       
-                  st.update();
-              }
-              isAutoLooping = false; 
-          }
-      });
+    const circleEl = document.querySelector('.progress-ring__circle');
+    const radius = circleEl.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
 
-      // 🌟【高级 UI 闭环】：顺时针清空圆环！
-      // 将 offset 动画到 -circumference（负号是核心），它就会顺着原来的方向继续追着尾巴清空！
-      loopTl.to(circleEl, { 
-          strokeDashoffset: -circumference, 
-          duration: 1.5, 
-          ease: "power2.inOut" 
-      }, 0);
+    const loopTl = gsap.timeline({
+      onComplete: () => {
+        // 时空跃迁：无痕跳回顶部
+        window.scrollTo(0, 0);
+        tl.progress(0);
 
-      // 1. 盒子恢复水平，猛砸向深空原点
-      loopTl.to(modelGroup.position, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power3.in" }, 0)
-            .to(modelGroup.rotation, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power3.in" }, 0);
+        if (st) {
+          st.enable();
+          st.update();
+        }
+        isAutoLooping = false;
+      }
+    });
 
-      // 2. 砸地瞬间物理回弹
-      loopTl.to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, 0.8);
+    // 🌟【高级 UI 闭环】：顺时针清空圆环！
+    // 将 offset 动画到 -circumference（负号是核心），它就会顺着原来的方向继续追着尾巴清空！
+    loopTl.to(circleEl, {
+      strokeDashoffset: -circumference,
+      duration: 1.5,
+      ease: "power2.inOut"
+    }, 0);
 
-      // 3. 同步触发冲击波视频
-      loopTl.add(() => {
-          const vid = document.getElementById('shockwaveVideo');
-          if (vid) {
-              vid.currentTime = 0;
-              vid.play().catch(e => console.warn(e));
-          }
-      }, 0.65); 
+    // 1. 盒子恢复水平，猛砸向深空原点
+    loopTl.to(modelGroup.position, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power3.in" }, 0)
+      .to(modelGroup.rotation, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power3.in" }, 0);
 
-      loopTl.to('#shockwaveVideo', { opacity: 1, duration: 0.2 }, 0.65)
-            .to('#shockwaveVideo', { opacity: 0, duration: 1.0 }, 0.9);
+    // 2. 砸地瞬间物理回弹
+    loopTl.to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, 0.8);
 
-      // 4. 气流轰开盖子
-      loopTl.to(caseLid.rotation, { 
-          x: lidInitialRot - Math.PI / 2, 
-          duration: 1.2, 
-          ease: "power2.out" 
-      }, 0.9); 
+    // 3. 同步触发冲击波视频
+    loopTl.add(() => {
+      const vid = document.getElementById('shockwaveVideo');
+      if (vid) {
+        vid.currentTime = 0;
+        vid.play().catch(e => console.warn(e));
+      }
+    }, 0.65);
+
+    loopTl.to('#shockwaveVideo', { opacity: 1, duration: 0.2 }, 0.65)
+      .to('#shockwaveVideo', { opacity: 0, duration: 1.0 }, 0.9);
+
+    // 4. 气流轰开盖子
+    loopTl.to(caseLid.rotation, {
+      x: lidInitialRot - Math.PI / 2,
+      duration: 1.2,
+      ease: "power2.out"
+    }, 0.9);
   }
 }
 
@@ -690,12 +781,6 @@ function triggerShootingStar() {
   });
 }
 
-// ==========================================
-// 7. 无缝无限滚动闭环逻辑 (Infinite Scroll)
-// ==========================================
-window.addEventListener('scroll', () => {
-});
-
 // 窗口自适应适配
 window.addEventListener('resize', () => {
   const w = window.innerWidth, h = window.innerHeight;
@@ -743,6 +828,31 @@ function setupDebugGUI() {
     rightFolder.add(earbudRight.rotation, 'x', -Math.PI, Math.PI, 0.01).name('Rot X');
     rightFolder.add(earbudRight.rotation, 'y', -Math.PI, Math.PI, 0.01).name('Rot Y');
     rightFolder.add(earbudRight.rotation, 'z', -Math.PI, Math.PI, 0.01).name('Rot Z');
+  }
+
+  // 1. 穿透寻找真正的材质
+  let targetMat = null;
+  if (earbudRight) {
+    earbudRight.traverse((child) => {
+      // 只要找到网格，就提取它的材质
+      if (child.isMesh) targetMat = child.material; 
+    });
+  }
+
+  // 2. 绑定 GUI (确保灯光和材质都真正存在)
+  if (magicFollowLight && targetMat) {
+    const debugFolder = gui.addFolder('晶圆特写光影调试');
+    
+    // 控制那盏蓝色的专属跟拍灯
+    debugFolder.add(magicFollowLight.position, 'x', -10, 10).name('灯光左右(X)');
+    debugFolder.add(magicFollowLight.position, 'y', -10, 10).name('灯光上下(Y)');
+    debugFolder.add(magicFollowLight.position, 'z', -5, 5).name('灯光前后(Z)'); // 极其关键：越贴近表面，网格越清晰
+    debugFolder.add(magicFollowLight, 'intensity', 0, 500).name('灯光亮度');
+    
+    // 控制真正的模型材质
+    debugFolder.add(targetMat, 'roughness', 0, 1).name('表面粗糙度'); 
+  } else {
+    console.warn('⚠️ 警告：找不到跟拍灯或目标材质，光影调试面板未加载');
   }
 
   gui.close(); // 默认折叠起来
