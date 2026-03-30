@@ -278,11 +278,22 @@ header {
   transform: rotate(-90deg);
 }
 
+/* =========================================
+   彗星拖尾环形渐变 (Conic Gradient)
+   ========================================= */
+.conic-bg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 移除之前不需要的外发光，保持性能干净 */
 .progress-ring__circle {
-  /* 增加一点外发光，提升高级感 */
-  filter: drop-shadow(0 0 8px rgba(65, 165, 255, 0.6));
   transition: stroke-dashoffset 0.1s linear;
-  /* 让进度更新更顺滑 */
+}
+
+/* 让彗星头有物理过曝的十字光晕感 */
+.progress-ring__head {
+  filter: drop-shadow(0 0 8px #41a5ff) drop-shadow(0 0 16px rgba(65, 165, 255, 0.8));
 }
 
 .ui-container {
@@ -385,10 +396,14 @@ header {
 
 /* 错落的 Y 轴定位 */
 .ui-stage-2 .param.left {
-  text-align: right;
-  top: 30%;
+  top: 22%;
   /* 左侧明显偏上 */
-  left: 15%;
+  left: 8%;
+  width: 320px;
+}
+
+.ui-stage-2 .param.left .param-text {
+  text-align: right;
 }
 
 .ui-stage-2 .param.right {
@@ -434,13 +449,13 @@ header {
 }
 
 .guide-line.left-line {
-  left: calc(100% + 15px);
-  /* 从左侧文字块的右边缘向外延伸 */
+  left: calc(100% + 5px); 
+  top: 31px;
 }
 
 .guide-line.right-line {
   right: calc(100% + 45px);
-  /* 从右侧文字块的左边缘向外延伸 */
+  top: 31px;
 }
 
 /* =========================================

@@ -163,10 +163,26 @@
 
   <div class="circular-progress-w stage2-el">
     <svg class="progress-ring" width="800" height="800">
-      <circle class="progress-ring__bg" stroke="rgba(65, 165, 255, 0.1)" stroke-width="2" fill="transparent" r="380"
-        cx="400" cy="400" />
-      <circle class="progress-ring__circle" stroke="#41a5ff" stroke-width="3" fill="transparent" r="380" cx="400"
-        cy="400" stroke-linecap="round" />
+      <defs>
+        <filter id="headGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <mask id="ringMask">
+          <circle class="progress-ring__circle" stroke="white" stroke-width="2" fill="transparent" r="380"
+            cx="400" cy="400" stroke-linecap="round" />
+        </mask>
+      </defs>
+
+      <foreignObject x="0" y="0" width="800" height="800" mask="url(#ringMask)">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="conic-bg"></div>
+      </foreignObject>
+
+      <circle class="progress-ring__head" cx="780" cy="400" r="4" fill="#ffffff" filter="url(#headGlow)" />
     </svg>
   </div>
 

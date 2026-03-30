@@ -169,7 +169,7 @@ function createDefinitiveRipple() {
                 // 1. 🌟【核心修复 1：拉近间距】暴增频率！
                 // 将距离乘数从 25.0 大幅度提高到 48.0。
                 // 乘数越大，同心圆环之间的物理间距就越小，显得更紧密。
-                float wave = cos(dist * 80.0 - uTime * 2.0); 
+                float wave = cos(dist * 80.0 - uTime * 0.5); 
 
                 // 将cosine波形归一化到 [0,1] 区间
                 float pulse = (wave + 1.5) / 2.0;
@@ -560,14 +560,18 @@ function initScrollTimeline() {
     });
   }
 
+  // 补充获取新加的彗星头元素
   const circle = document.querySelector('.progress-ring__circle');
+  const head = document.querySelector('.progress-ring__head'); // 🌟 新增
   const radius = circle.r.baseVal.value;
   const circumference = radius * 2 * Math.PI;
+  const conicBg = document.querySelector('.conic-bg');
+  const uiProgress = { val: 0 };
 
   circle.style.strokeDasharray = `${circumference} ${circumference}`;
   circle.style.strokeDashoffset = circumference;
 
-  let isAutoLooping = false; // 锁定状态
+  let isAutoLooping = false;
 
   const tl = gsap.timeline({
     scrollTrigger: {
@@ -583,15 +587,37 @@ function initScrollTimeline() {
         duration: { min: 0.2, max: 0.8 }
       },
       onUpdate: (self) => {
-        // 1. 常规的圆环进度更新 (只在非自动播放时执行)
         if (!isAutoLooping) {
+          // 1. 原有的线圈清空控制
           const offset = circumference - self.progress * circumference;
           gsap.to(circle, { strokeDashoffset: offset, duration: 0.1, ease: "none" });
           gsap.to(bgScrollObj, { offset: self.progress * -Math.PI * 2, duration: 0.8, ease: "power2.out" });
+
+          // 2. 🌟 核心魔法：动态计算发光头与渐变尾巴
+          gsap.to(uiProgress, {
+              val: self.progress,
+              duration: 0.1, // 这里的 0.1 必须和线圈动画同步，保证头咬着线
+              ease: "none",
+              onUpdate: () => {
+                  const p = uiProgress.val;
+
+                  // A. 更新发光头坐标
+                  const angle = p * Math.PI * 2;
+                  head.setAttribute('cx', 400 + radius * Math.cos(angle));
+                  head.setAttribute('cy', 400 + radius * Math.sin(angle));
+
+                  // B. 🌟 动态压缩渐变！
+                  // 将 0-100% 的渐变强行挤压到当前 p 的长度里！
+                  const p100 = Math.max(p * 100, 0.01); // 算出当前总长度 (避免 0% 报错)
+                  const p40 = p100 * 0.4;               // 算出幽蓝色转折点
+                  
+                  if(conicBg) {
+                      conicBg.style.background = `conic-gradient(from 90deg, rgba(2, 6, 17, 0) 0%, rgba(26, 85, 153, 0.5) ${p40}%, #41a5ff ${p100}%, transparent ${p100}%)`;
+                  }
+              }
+          });
         }
 
-        // 2. 🌟【核心修复】：不再使用 setTimeout！
-        // 当用户滚到底部，或者被 Snap 自动吸附到底部 (progress > 0.99) 时，立刻触发大片！
         if (self.progress > 0.99 && !isAutoLooping) {
           playCinematicLoop();
         }
@@ -641,11 +667,11 @@ function initScrollTimeline() {
   tl.to(earbudLeft.position, { x: 2, y: w1Initial.pos.y + 8.5, z: w1Initial.pos.z + 4, duration: 0.1, ease: "power2.out" }, "stage2+=0.9")
 
   // 到图片阶段的最终状态
-  tl.to(earbudLeft.position, { x: 0.69, y: 6.07, z: w1Initial.pos.z + 8.8, duration: 0.9, ease: "power2.out" }, "stage2+=1")
-    .to(earbudLeft.rotation, { x: 2.70, y: -2.42159265358979, duration: 0.9, ease: "power2.out" }, "stage2+=1");
+  tl.to(earbudLeft.position, { x: 0.62, y: 5.88, z: w1Initial.pos.z + 8.8, duration: 0.9, ease: "power2.out" }, "stage2+=1")
+    .to(earbudLeft.rotation, { x: 2.70, y: -2.42159265358979, duration: 0.4, ease: "power2.out" }, "stage2+=1");
 
   tl.to(earbudRight.position, { x: 1.4, y: 5.42, z: w2Initial.pos.z + 8.8, duration: 1.6, ease: "power2.out" }, "stage2+=0.3")
-    .to(earbudRight.rotation, { x: -0.181592653589793, y: Math.PI + 0.438407346410207, z: 1.97840734641021, duration: 1.6, ease: "power2.out" }, "stage2+=0.3");
+    .to(earbudRight.rotation, { x: -0.181592653589793, y: Math.PI + 0.438407346410207, z: 1.97840734641021, duration: 1.3, ease: "power2.out" }, "stage2+=0.6");
 
 
   // ------------------------------------------
@@ -659,14 +685,14 @@ function initScrollTimeline() {
   tl.fromTo([".stage3-title", ".callout"], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, "stage3+=0.2");
   tl.fromTo(".spec-item", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out", stagger: 0.15 }, "stage3+=0.4");
 
-  tl.to(earbudLeft.position, { x: 0.1, y: 6.07, duration: 0.3, ease: "power2.out" }, "stage3")
-  tl.to(earbudRight.position, { x: 2.8, y: 5.34, duration: 1.3, ease: "power2.out" }, "stage3")
+  tl.to(earbudLeft.position, { x: 0.01, y: 6.07,z: w1Initial.pos.z + 6, duration: 1, ease: "power2.out" }, "stage3")
+    .to(earbudLeft.rotation, { x: 0, y: 0.438, z: -0.2, duration: 1, ease: "power2.out" }, "stage3+=0.3");
+  tl.to(earbudRight.position, { x: 3.0, y: 5.34, duration: 1, ease: "power2.out" }, "stage3")
+    .to(earbudRight.rotation, { x: 2.13840734641021, y: -Math.PI, z: -0.931592653589, duration: 1, ease: "power2.out" }, "stage3+=0.3");
 
-  tl.to(earbudLeft.position, { x: 0.98, y: 6.22, z: w1Initial.pos.z + 8, duration: 0.3, ease: "power2.out" }, "stage3+=0.3")
-    .to(earbudLeft.rotation, { x: 0, y: Math.PI * 2 + 0.5184, z: -0.2, duration: 1.3, ease: "power2.out" }, "stage3+=0.3");
+  tl.to(earbudLeft.position, { x: 0.98, y: 6.22, z: w1Initial.pos.z + 8, duration: 0.6, ease: "power2.out" }, "stage3+=1")
 
-  tl.to(earbudRight.position, { x: 1.33, y: 5.34, z: w2Initial.pos.z + 8.9, duration: 1.3, ease: "power2.out" }, "stage3+=0.3")
-    .to(earbudRight.rotation, { x: 2.13840734641021, y: -Math.PI, z: -0.801592653589793, duration: 1.3, ease: "power2.out" }, "stage3+=0.3");
+  tl.to(earbudRight.position, { x: 1.33, y: 5.34, z: w2Initial.pos.z + 8.9, duration: 0.4, ease: "power2.out" }, "stage3+=1")
 
   // ------------------------------------------
   // Stage 4: 晶圆横移换位与薄膜晶圆特写
@@ -676,10 +702,10 @@ function initScrollTimeline() {
   tl.to(".ui-stage-3", { opacity: 0, duration: 0.4 }, "stage4");
 
   // 分离阶段
-  tl.to(earbudLeft.position, { x: -0.32, duration: 0.5, ease: "power2.out" }, "stage4")
+  tl.to(earbudLeft.position, { x: -0.32,z: w1Initial.pos.z + 6, duration: 0.5, ease: "power2.out" }, "stage4")
     .to(earbudLeft.rotation, { x: 0, y: Math.PI * 2 + 0.9, z: 0, duration: 0.5, ease: "power2.out" }, "stage4");
 
-  tl.to(earbudRight.position, { x: 2, duration: 0.4, ease: "power2.out" }, "stage4+=0.1")
+  tl.to(earbudRight.position, { x: 2.5, duration: 0.4, ease: "power2.out" }, "stage4")
     .to(earbudRight.rotation, { z: -1.32159265358979, duration: 0.4, ease: "power2.out" }, "stage4+=0.1")
 
   tl.to(earbudLeft.position, { x: 0.68, y: 5.17, z: w1Initial.pos.z + 10.5, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.5")
@@ -688,10 +714,10 @@ function initScrollTimeline() {
   tl.to(earbudRight.position, { x: 0.61, y: 5.93, z: w2Initial.pos.z + 8.6, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.7")
     .to(earbudRight.rotation, { y: -2.93, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.7");
 
-  tl.set(".ui-stage-4", { opacity: 1 }, "stage4");
+  tl.set(".ui-stage-4", { opacity: 1 }, "stage4+=0.4");
   tl.fromTo([".stage4-title", ".ui-stage-4 .callout"],
     { opacity: 0, x: (i) => i === 0 ? -30 : 30 },
-    { opacity: 1, x: 0, duration: 0.8, ease: "power2.out", stagger: 0.2 }, "stage4+=0.8");
+    { opacity: 1, x: 0, duration: 0.8, ease: "power2.out", stagger: 0.2 }, "stage4+=1.2");
 
 
   // ------------------------------------------
@@ -846,12 +872,24 @@ function initScrollTimeline() {
       }
     });
 
-    // 🌟【高级 UI 闭环】：顺时针清空圆环！
-    // 将 offset 动画到 -circumference（负号是核心），它就会顺着原来的方向继续追着尾巴清空！
+    // 🌟【高级 UI 闭环】：顺时针清空圆环的线条
     loopTl.to(circleEl, {
       strokeDashoffset: -circumference,
       duration: 1.5,
       ease: "power2.inOut"
+    }, 0);
+
+    // 🌟【新增】：让发光点跟着一起“跑完最后的清空圈”，回到 12 点钟起点
+    const dummyObj = { p: 1 }; // progress 已经满了，我们模拟它从 1 继续跑到 2
+    loopTl.to(dummyObj, {
+      p: 2, 
+      duration: 1.5,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        const angle = dummyObj.p * Math.PI * 2;
+        head.setAttribute('cx', 400 + radius * Math.cos(angle));
+        head.setAttribute('cy', 400 + radius * Math.sin(angle));
+      }
     }, 0);
 
     // 1. 盒子恢复水平，猛砸向深空原点
