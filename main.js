@@ -5,6 +5,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import GUI from 'lil-gui';
 
+// 🌟【新增】：引入 HDR 环境贴图加载器
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
 // 引入 Three.js 官方的粗线 (Fat Lines) 扩展模块
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
@@ -49,50 +52,85 @@ let time_bg = 0;
 const mouseState = { currentX: 0, currentY: 0, targetX: 0, targetY: 0 };
 let sandParticles;
 
-
 // ==========================================
-// 1.2 灯光系统 (8灯无死角影棚矩阵)
+// 1.2 灯光系统 (影视级三点布光 + 氛围光)
 // ==========================================
 
-// 1. 基础全局环境光：强行提升整个场景的暗部底色，确保绝对没有“死黑”
-scene3D.add(new THREE.AmbientLight(0x717577bb, 0.8));
+// 1. 环境光 (提供整体暗部底色)
+const ambientLight = new THREE.AmbientLight(0x606080, 0.85);
+scene3D.add(ambientLight);
 
-// 2. 8点矩阵光源配置 (按照甲方要求，全部使用 #6baac7)
-const lightColor = [
-  0xFF8800,
-  0xFFA600,
-  0xFFA600,
-  0x00E4E4,
-  0x8C00FF,
-  0xFF0000,
-  0x0000F5,
-  0x41FF44
-];
-const baseIntensity = 1; // 基础光强，可根据实际明暗微调
+// 2. 主光源 (带有阴影的强烈冷白光)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+directionalLight.position.set(3, 5, 2);
+directionalLight.castShadow = true;
+directionalLight.receiveShadow = false;
+directionalLight.shadow.mapSize.width = 1024;
+directionalLight.shadow.mapSize.height = 1024;
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 10;
+directionalLight.shadow.camera.left = -5;
+directionalLight.shadow.camera.right = 5;
+directionalLight.shadow.camera.top = 5;
+directionalLight.shadow.camera.bottom = -5;
+scene3D.add(directionalLight);
 
-// 我们建立一个 8 盏灯的包围矩阵，分别位于模型的 8 个斜角
-// 为了打破死板，同侧的灯光角度（高低、远近）特意做了一些随机错开
-const lightPositions = [
-  { x: 8, y: 8, z: 8, intensity: baseIntensity * 0.5 }, // 前上右 (主光，稍微亮一点)
-  { x: -7, y: 9, z: 6, intensity: baseIntensity * 0.5 },       // 前上左 (略高)
-  { x: 6, y: -6, z: 7, intensity: baseIntensity * 0.5 }, // 前下右 (底光稍弱)
-  { x: -8, y: -7, z: 5, intensity: baseIntensity * 0.5 }, // 前下左
+// 3. 背光 (暖橘色，制造冷暖对比与边缘厚度)
+const backLight = new THREE.PointLight(0xffaa66, 0.6);
+backLight.position.set(-2, 2, -3);
+scene3D.add(backLight);
 
-  { x: 7, y: 6, z: -8, intensity: baseIntensity * 0.5 },       // 后上右 (勾勒边缘)
-  { x: -9, y: 8, z: -7, intensity: baseIntensity * 0.5 },       // 后上左
-  { x: 5, y: -8, z: -6, intensity: baseIntensity * 0.5 }, // 后下右
-  { x: -6, y: -5, z: -9, intensity: baseIntensity * 0.5 }  // 后下左
-];
+// 4. 填充光 (柔和蓝光，打亮阴影死角)
+const fillLight = new THREE.PointLight(0x88aaff, 0.4);
+fillLight.position.set(1, 1.5, 2);
+scene3D.add(fillLight);
 
-lightPositions.forEach((config, index) => {
-  const dirLight = new THREE.DirectionalLight(lightColor[index], config.intensity);
-  dirLight.position.set(config.x, config.y, config.z);
-  scene3D.add(dirLight);
-});
+// 5. 轮廓光 (底部的反光补足)
+const rimLight = new THREE.PointLight(0x88ccff, 0.3);
+rimLight.position.set(0, -1, 0);
+scene3D.add(rimLight);
 
-// ==========================================
-// 镜头控制器 (OrbitControls)
-// ==========================================
+// 6. 半球光 (模拟天空冷蓝与地面暗青的漫反射)
+const hemiLight = new THREE.HemisphereLight(0x8b9dc3, 0x3c4a5e, 0.45);
+scene3D.add(hemiLight);
+
+
+// // ==========================================
+// // 1.2 灯光系统 (8灯无死角影棚矩阵)
+// // ==========================================
+
+// // 1. 基础全局环境光：强行提升整个场景的暗部底色，确保绝对没有“死黑”
+// scene3D.add(new THREE.AmbientLight(0xbeddf8, 0.8));
+
+// // 2. 8点矩阵光源配置 (按照甲方要求，全部使用 #BEDDF8)
+// const lightColor = 0xbeddf8;
+// const baseIntensity = 1.5; // 基础光强，可根据实际明暗微调
+
+// // 我们建立一个 8 盏灯的包围矩阵，分别位于模型的 8 个斜角
+// // 为了打破死板，同侧的灯光角度（高低、远近）特意做了一些随机错开
+// const lightPositions = [
+//     { x:  8, y:  8, z:  8, intensity: baseIntensity * 1.2 }, // 前上右 (主光，稍微亮一点)
+//     { x: -7, y:  9, z:  6, intensity: baseIntensity },       // 前上左 (略高)
+//     { x:  6, y: -6, z:  7, intensity: baseIntensity * 0.8 }, // 前下右 (底光稍弱)
+//     { x: -8, y: -7, z:  5, intensity: baseIntensity * 0.9 }, // 前下左
+    
+//     { x:  7, y:  6, z: -8, intensity: baseIntensity },       // 后上右 (勾勒边缘)
+//     { x: -9, y:  8, z: -7, intensity: baseIntensity },       // 后上左
+//     { x:  5, y: -8, z: -6, intensity: baseIntensity * 0.7 }, // 后下右
+//     { x: -6, y: -5, z: -9, intensity: baseIntensity * 0.8 }  // 后下左
+// ];
+
+// // 批量生成灯光并加入场景
+// lightPositions.forEach((config) => {
+//     // 使用 DirectionalLight (平行光) 可以保证无论模型飞到哪里，打光的角度永远存在，没有距离衰减
+//     const dirLight = new THREE.DirectionalLight(lightColor, config.intensity);
+//     dirLight.position.set(config.x, config.y, config.z);
+//     scene3D.add(dirLight);
+// });
+
+// // ==========================================
+// // 镜头控制器 (OrbitControls)
+// // ==========================================
 const controls3D = new OrbitControls(camera3D, renderer3D.domElement);
 controls3D.enableDamping = true;
 controls3D.dampingFactor = 0.05;
@@ -387,103 +425,202 @@ loadingTl.to('.loader__circle', {
 
 
 // ==========================================
-// 3. 模型加载与开场动画挂载
+// 3. 模型加载、环境贴图与高级材质重构
 // ==========================================
-const gltfLoader = new GLTFLoader();
+let currentEnvMap = null;
 
-// 🌟【新增】：在外部加载 AO 贴图 (请确保 image_860002.png 在你的正确目录下)
+// 🌟 1. 预加载 HDR 环境贴图 (赋予模型极其真实的物理反射)
+new RGBELoader().setDataType(THREE.FloatType).load(
+  'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/studio_small_09_2k.hdr',
+  (texture) => {
+    const pmremGenerator = new THREE.PMREMGenerator(renderer3D);
+    currentEnvMap = pmremGenerator.fromEquirectangular(texture).texture;
+    scene3D.environment = currentEnvMap; // 设置全局环境反射
+    pmremGenerator.dispose();
+
+    // 异步防弹：如果模型已经先加载完了，补齐环境贴图
+    modelGroup.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material.envMap = currentEnvMap;
+        child.material.envMapIntensity = 1.2;
+        child.material.needsUpdate = true;
+      }
+    });
+  }
+);
+
+// 🌟 2. 预加载盖子 (Case_Lid) 专属 UI 贴图
 const textureLoader = new THREE.TextureLoader();
-const aoMapTexture = textureLoader.load('./AO.png');
-aoMapTexture.flipY = false;
+let lidTexture = textureLoader.load('./2.png');
+lidTexture.wrapS = THREE.RepeatWrapping;
+lidTexture.wrapT = THREE.RepeatWrapping;
+lidTexture.repeat.set(1, 1);
+lidTexture.colorSpace = THREE.SRGBColorSpace; // 确保贴图颜色正确不泛白
+
+// 🌟【新增】：预加载晶圆背部 (Wafer Back) 发光贴图
+// 假设图片和 js 文件在同级目录，名称为 1.png
+let waferBackTexture = textureLoader.load('./1.png'); 
+// 🌟【关键配置】：晶圆是圆形的，这个图案也是圆形的。
+// 必须设置 ClampToEdgeWrapping，防止图案在边缘重复出现生硬的横线。
+waferBackTexture.wrapS = THREE.ClampToEdgeWrapping;
+waferBackTexture.wrapT = THREE.ClampToEdgeWrapping;
+waferBackTexture.colorSpace = THREE.SRGBColorSpace; // 🌟 核心：确保颜色不发灰、不过曝
+
+// 🌟【新增】：创建专属的双面发光科技晶圆材质
+const waferMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffffff, // 基础色为白色，让贴图颜色原样呈现
+  roughness: 0.3, // 带有一定光滑度
+  metalness: 0.7, // 较强的金属感，烘托科技感
+  
+  // 🌟【贴图核心】
+  map: waferBackTexture,      // 将其作为基础贴图 (在有光时可见)
+  emissiveMap: waferBackTexture, // 🌟【关键】：将其同时也作为自发光贴图！
+  
+  // 🌟【发光核心】
+  emissive: 0xffffff, // 自发光颜色为白色，激发贴图的所有冷暖色调
+  emissiveIntensity: 0.7, // 🌟 核心：调节自发光强度，0.7 左右会让它清晰可见且带有幽光
+  
+  transparent: true,
+  opacity: 0.95, // 稍微带点透明度，增加高级感
+});
+
+// 🌟 3. 加载 GLTF 模型本体
+const gltfLoader = new GLTFLoader();
 gltfLoader.load(
   './box1.glb',
   (gltf) => {
     const realModel = gltf.scene;
 
-    // 1. 调整大小
+    // 调整大小与初始位置
     realModel.scale.set(0.07, 0.07, 0.07);
-    // 2. 调整位置
     realModel.position.set(0, -1.5, 2.62);
-    // 3. 调整初始角度
     realModel.rotation.x = 1;
 
-    // 【核心新增】让包裹模型的总组初始悬浮在半空 (Y=12)
     modelGroup.position.set(0, 12, 0);
     modelGroup.add(realModel);
 
-    // 遍历寻找我们需要的部件 (更新为新命名)
+    let caseBottom = null;
+
+    // ==================================================
+    // 🌟 4. 第一步：精准抓取模型结构组 (坚决不能用 isMesh 拦截！)
+    // ==================================================
     realModel.traverse((child) => {
-      if (child.name === 'Case_Lid') caseLid = child;
-
-      // 🌟【新增】：为所有模型挂载 AO 贴图提升厚重感
-      if (child.isMesh && child.material) {
-        // 确保模型有第二套 UV 用于 AO 贴图
-        if (!child.geometry.attributes.uv2 && child.geometry.attributes.uv) {
-          child.geometry.setAttribute('uv2', new THREE.BufferAttribute(child.geometry.attributes.uv.array, 2));
-        }
-        child.material.aoMap = aoMapTexture;
-        child.material.aoMapIntensity = 1.0;
-        child.material.envMapIntensity = 1.5;
-      }
-      // 🎧 右晶圆 (薄膜晶圆) - 注入专属参数与灯光
-      if (child.name === 'Waferright') {
+      const name = child.name.toLowerCase();
+      
+      // A. 抓取盖子
+      if (name.includes('case_lid') || name.includes('caselid')) {
+        caseLid = child;
+      } 
+      // B. 抓取底座
+      else if (name.includes('case_bottom') || name.includes('casebottom')) {
+        caseBottom = child;
+      } 
+      // C. 抓取右晶圆
+      else if (child.name === 'Waferright') {
         earbudRight = child;
-        // 【核心新增】：克隆材质，让右晶圆拥有独立的材质，以便后续用 GSAP 单独给它变色！
-        if (child.material) {
-          child.material = child.material.clone();
-        }
-
-        // 参数：颜色(科技深蓝), 亮度(极高，因为要压过环境光), 衰减距离(8，只照亮自己)
+        // 挂载我们之前调好的蓝色月牙侧扫灯
         magicFollowLight = new THREE.PointLight(0x0055ff, 365, 8);
-
-        // 核心站位：x设为负数(放在晶圆左侧), z微微凸出(贴着表面扫光，照出网格颗粒)
         magicFollowLight.position.set(-1.56, 0.66, -0.29);
-
-        // 绑定父子关系：让灯光成为晶圆的子元素！晶圆飞到哪、怎么转，灯就死死跟到哪！
         child.add(magicFollowLight);
-
-        // 🌟 直接在这里添加 GUI！因为此时模型 100% 加载完成了
-        // 注意：确保外面已经初始化了 gui 变量 (比如 const gui = new GUI();)
-        if (typeof gui !== 'undefined') {
-          const debugFolder = gui.addFolder('晶圆特写光影调试');
-          debugFolder.add(magicFollowLight.position, 'x', -10, 10).name('灯光左右(X)');
-          debugFolder.add(magicFollowLight.position, 'z', -5, 5).name('灯光前后(Z)');
-          debugFolder.add(magicFollowLight, 'intensity', 0, 500).name('灯光亮度');
-          debugFolder.add(earbudRight.material, 'roughness', 0, 1).name('表面粗糙度');
-        }
-      }
-      // 🎧 左晶圆 (核心晶圆) - 注入专属参数
-      if (child.name === 'Waferleft') {
+      } 
+      // D. 抓取左晶圆
+      else if (child.name === 'Waferleft') {
         earbudLeft = child;
-        if (child.material) {
-          // 注入 3D 老师的精确参数：金属度 0.8，粗糙度 0.3
-          child.material.metalness = 0.8;
-          child.material.roughness = 0.3;
-        }
       }
     });
 
+    // ==================================================
+    // 🌟 5. 第二步：深入组内部，为真正的 Mesh 穿上“高定材质”
+    // ==================================================
+    
+    // 5.1 全局兜底基础材质 (防漏涂，先给所有网格刷一层基础光影)
+    realModel.traverse((child) => {
+      if (child.isMesh && child.material) {
+         child.material.roughness = 0.35;
+         child.material.metalness = 0.6;
+         child.material.envMap = currentEnvMap;
+         child.material.envMapIntensity = 1.2;
+         child.material.needsUpdate = true;
+      }
+    });
+
+    // 5.2 盖子 (Case_Lid) 专属高级半透明材质
+    if (caseLid) {
+      caseLid.traverse((mesh) => {
+        if (mesh.isMesh) {
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.75, 
+            metalness: 0.15, 
+            transparent: true,
+            opacity: 0.83,   
+            map: lidTexture, 
+            envMap: currentEnvMap,
+            envMapIntensity: 1.2
+          });
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        }
+      });
+    }
+
+    // 5.3 底座 (Case_Bottom) 专属深邃蓝材质
+    if (caseBottom) {
+      caseBottom.traverse((mesh) => {
+        if (mesh.isMesh) {
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: 0x00020d, 
+            roughness: 0.5,
+            metalness: 0.2,
+            envMap: currentEnvMap,
+            envMapIntensity: 1.2
+          });
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        }
+      });
+    }
+
+    // 🌟 5.4 【重构】：左右晶圆 (Waferleft & Waferright) 注入背部双面发光贴图材质
+    
+    // 定义一个复用的材质应用函数
+    const applyDefinitiveWaferMaterial = (group, name) => {
+      if (group) {
+        group.traverse((mesh) => {
+          if (mesh.isMesh) {
+            // 🌟 核心：直接赋予我们准备好的双面发光科技材质
+            mesh.material = waferMaterial; 
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            // 因为应用了统一材质，我们不需要单独克隆了。
+            console.log(`✨ 已将 "${name}" 的 Mesh "${mesh.name}" 应用双面发光贴图材质`);
+          }
+        });
+      }
+    };
+
+    // 分别应用到左和右晶圆组内部的 Mesh 上
+    applyDefinitiveWaferMaterial(earbudLeft, 'Waferleft');
+    applyDefinitiveWaferMaterial(earbudRight, 'Waferright');
+
+    // ==================================================
+    // 🌟 6. 结构挂载与时间轴播放
+    // ==================================================
+    
+    // 组装结构以支持开合盖动画
     if (caseLid) {
       modelGroup.attach(caseLid);
-      lidInitialRot = caseLid.rotation.x; // 记录铰链初始角度
+      lidInitialRot = caseLid.rotation.x; 
     }
     if (earbudLeft) modelGroup.attach(earbudLeft);
     if (earbudRight) modelGroup.attach(earbudRight);
 
-    // 将 3D 动作追加进 loadingTl
+    // 将 3D 动作追加进 loadingTl (这部分保持你原来的代码逻辑不变)
     loadingTl
-      // 【修改 1】在 Loading 圆环退场后，提前把 stage2-el（包含导航栏、底栏、空UI容器）淡入进来。
-      // 注意：此时 .ui-stage-1 本身还是 opacity: 0 的，所以文字此时依然看不见，保持干爽。原值为1
       .to('.stage2-el', { opacity: 1, duration: 0.2 }, "<0.5")
-
-      // 瞬间显示网格与粒子
       .set(sphericalGridGroup, { visible: true }, "<")
       .set(particlesGroup, { visible: true }, "<")
-
-      // A. 下沉砸向画面中心
       .to(modelGroup.position, { y: 0, duration: 1.2, ease: "power3.in" }, "<")
-
-      // B. 砸地瞬间：冲击波与震动
       .add(() => {
         const vid = document.getElementById('shockwaveVideo');
         if (vid) {
@@ -492,36 +629,22 @@ gltfLoader.load(
         }
       })
       .to('#shockwaveVideo', { opacity: 1, duration: 0.2 }, "<")
-      .to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, "<") // 注意这里加了 "<" 同步
-
-      // ==========================================================
-      // 【核心新增：方案 A】砸地的同一瞬间，两侧文字伴随冲击波“爆”出来！
-      // ==========================================================
+      .to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, "<") 
       .fromTo('.ui-stage-1',
-        { opacity: 0, y: 30, filter: 'blur(10px)' }, // 初始状态：下沉、透明、模糊
-        { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: "power2.out" }, // 弹入状态
-        "<" // 这个 "<" 就是灵魂，意味着它和砸地/冲击波在同一毫秒发生！
+        { opacity: 0, y: 30, filter: 'blur(10px)' }, 
+        { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: "power2.out" }, 
+        "<" 
       )
-
-      // C. 自动开盖展示 (延迟 0.3 秒)
       .to(caseLid.rotation, { x: lidInitialRot - Math.PI / 2, duration: 1.5, ease: "power2.out" }, "+=0.3")
-      .to('#shockwaveVideo', {
-        opacity: 0,
-        duration: 1
-        // ⚠️【关键修改】：删掉这里的 onComplete: () => { vid.remove() }，把视频留着给结尾循环用！
-      }, "<")
-
-      // D. 交互解锁：恢复滚动条，绑定下拉动画
+      .to('#shockwaveVideo', { opacity: 0, duration: 1 }, "<")
       .add(() => {
         document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto'; // 【新增】：确保 html 层级也被彻底解锁
-
+        document.documentElement.style.overflow = 'auto'; 
         ScrollTrigger.refresh();
         setupDebugGUI();
-        initScrollTimeline(); // 激活鼠标滚轮的时间轴
+        initScrollTimeline(); 
       });
 
-    // 播放组装完毕的开场动画
     loadingTl.play();
 
     // 启动定时流星生成器
