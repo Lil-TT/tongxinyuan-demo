@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加入我们 - 元臻微电</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./nav.css">
+    <style>
+        * {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #fbbf24 50%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-bg {
+            background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.3), rgba(15, 23, 42, 0.95)),
+                url('https://kimi-web-img.moonshot.cn/img/thumbs.dreamstime.com/ba82049f25f2477f1c511790c6f6b39224cc5a91.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .job-item {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .job-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .job-item.active .job-content {
+            max-height: 800px;
+            opacity: 1;
+        }
+
+        .job-item.active {
+            background: rgba(30, 41, 59, 0.6);
+        }
+
+        .job-title-text {
+            transition: all 0.3s ease;
+        }
+
+        .job-item.active .job-title-text {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .job-item:not(.active) .job-title-text {
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .yellow-accent {
+            color: #fbbf24;
+        }
+
+        .scroll-indicator {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-10px);
+            }
+
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .nav-pill {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .gold-border {
+            border: 1px solid #fbbf24;
+        }
+
+        .gold-text {
+            color: #fbbf24;
+        }
+
+        .left-border-accent {
+            border-left: 3px solid #fbbf24;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white antialiased">
+    <!-- Hero Section -->
+    <section class="hero-bg min-h-screen flex flex-col justify-center items-center relative px-6 pt-20">
+        <div class="max-w-4xl mx-auto text-center space-y-8">
+            <!-- Main Title -->
+            <h1 class="text-6xl md:text-8xl font-light tracking-wider gradient-text">
+                加入我们
+            </h1>
+
+            <!-- Subtitle -->
+            <div class="space-y-2 text-gray-300 text-sm md:text-base leading-relaxed max-w-2xl mx-auto">
+                <p>在这里，我们不以出身、学历或过往光环作为唯一的评判标准。</p>
+                <p>我们相信，真正决定一个人价值的，是他面对问题时的态度，以及对结果的责任感。</p>
+            </div>
+        </div>
+
+        <!-- Bottom Content -->
+        <div class="absolute bottom-20 left-0 right-0 px-6">
+            <div class="max-w-4xl mx-auto text-center space-y-6">
+                <p class="text-gray-400 text-sm">我们更愿意和这样的人一起工作</p>
+
+                <div class="flex flex-wrap justify-center gap-4 text-xs md:text-sm text-gray-300">
+                    <span
+                        class="px-4 py-2 border border-gray-700 rounded-full hover:border-yellow-500 hover:text-yellow-400 transition-colors cursor-default">
+                        愿意为结果负责，而不是过程漂亮
+                    </span>
+                    <span
+                        class="px-4 py-2 border border-gray-700 rounded-full hover:border-yellow-500 hover:text-yellow-400 transition-colors cursor-default">
+                        能持续学习，而不是依赖过去的经验
+                    </span>
+                    <span
+                        class="px-4 py-2 border border-gray-700 rounded-full hover:border-yellow-500 hover:text-yellow-400 transition-colors cursor-default">
+                        在压力中依然选择把事情做好
+                    </span>
+                </div>
+
+                <p class="text-gray-500 text-xs">如果你认同这些，我们会非常欢迎你</p>
+
+                <!-- Scroll Indicator -->
+                <div class="scroll-indicator mt-8">
+                    <svg class="w-6 h-6 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Job Listings -->
+    <section class="bg-slate-950 py-20 px-6">
+        <div class="max-w-6xl mx-auto space-y-0">
+
+            <!-- Job 1: 动力设备工程师 (Active by default) -->
+            <div class="job-item active border-t border-gray-800" data-job="1">
+                <div class="py-8 px-4 cursor-pointer hover:bg-slate-900/50 transition-colors js-job-trigger">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-xs text-gray-500 font-mono">01</span>
+                            <h2 class="job-title-text text-3xl md:text-4xl lg:text-5xl">动力设备工程师</h2>
+                        </div>
+                        <span class="text-xs text-gray-500 mt-2">工作城市：孝感-孝南区</span>
+                    </div>
+                </div>
+
+                <div class="job-content px-4 pb-8">
+                    <div class="pl-8 md:pl-16 space-y-6">
+                        <!-- 岗位职责 -->
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 岗位职责 ]</h3>
+                            <p class="text-gray-300 text-sm">动力设备日常维护</p>
+                        </div>
+
+                        <!-- 工作内容 -->
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 工作内容 ]</h3>
+                            <ul class="text-gray-300 text-sm space-y-2">
+                                <li>1. 动力设备的日常巡检及保养；</li>
+                                <li>2. 动力设备故障诊断与维修；</li>
+                                <li>3. 领导安排的其它工作。</li>
+                            </ul>
+                        </div>
+
+                        <!-- 职位要求 -->
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 职位要求 ]</h3>
+                            <ul class="text-gray-300 text-sm space-y-1">
+                                <li>学　　历：专科</li>
+                                <li>专　　业：机电一体化、电气工程及其自动化、机械制造与自动化等；</li>
+                                <li>工作经验：要求具有机电设备维护经验1-3年以上，有半导体行业从业经历者优先；</li>
+                            </ul>
+                        </div>
+
+                        <!-- 薪资福利 -->
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 薪资福利 ]</h3>
+                            <ul class="text-gray-300 text-sm space-y-1">
+                                <li>薪　　资：5-8K</li>
+                                <li>福　　利：每年体检、生日关怀、不定期团建娱乐等</li>
+                            </ul>
+                        </div>
+
+                        <!-- 工作城市 & Email -->
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pt-4">
+                            <div class="left-border-accent pl-6">
+                                <h3 class="gold-text text-sm font-medium mb-2 tracking-wider">[ 工作城市 ]</h3>
+                                <p class="text-gray-300 text-sm">湖北 - 孝感 - 孝南区</p>
+                            </div>
+
+                            <a href="mailto:di.liu@eutronsense.com"
+                                class="gold-border gold-text px-6 py-3 text-sm hover:bg-yellow-500/10 transition-colors rounded-sm">
+                                简历请发送至邮箱：di.liu@eutronsense.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job 2: 项目助理 -->
+            <div class="job-item border-t border-gray-800" data-job="2">
+                <div class="py-8 px-4 cursor-pointer hover:bg-slate-900/50 transition-colors js-job-trigger">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-xs text-gray-500 font-mono">02</span>
+                            <h2 class="job-title-text text-3xl md:text-4xl lg:text-5xl">项目助理</h2>
+                        </div>
+                        <span class="text-xs text-gray-500 mt-2">工作城市：上海-青浦区</span>
+                    </div>
+                </div>
+
+                <div class="job-content px-4 pb-8">
+                    <div class="pl-8 md:pl-16 space-y-6">
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 职位描述 ]</h3>
+                            <p class="text-gray-300 text-sm">协助项目经理进行项目进度跟踪、文档管理及跨部门协调工作。</p>
+                        </div>
+                        <div class="flex justify-end">
+                            <a href="mailto:hr@eutronsense.com"
+                                class="gold-border gold-text px-6 py-3 text-sm hover:bg-yellow-500/10 transition-colors rounded-sm">
+                                简历请发送至邮箱：hr@eutronsense.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job 3: 设计专员 -->
+            <div class="job-item border-t border-gray-800" data-job="3">
+                <div class="py-8 px-4 cursor-pointer hover:bg-slate-900/50 transition-colors js-job-trigger">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-xs text-gray-500 font-mono">03</span>
+                            <h2 class="job-title-text text-3xl md:text-4xl lg:text-5xl">设计专员</h2>
+                        </div>
+                        <span class="text-xs text-gray-500 mt-2">工作城市：孝感-孝南区</span>
+                    </div>
+                </div>
+
+                <div class="job-content px-4 pb-8">
+                    <div class="pl-8 md:pl-16 space-y-6">
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 职位描述 ]</h3>
+                            <p class="text-gray-300 text-sm">负责产品外观设计、UI设计及品牌视觉传达工作。</p>
+                        </div>
+                        <div class="flex justify-end">
+                            <a href="mailto:design@eutronsense.com"
+                                class="gold-border gold-text px-6 py-3 text-sm hover:bg-yellow-500/10 transition-colors rounded-sm">
+                                简历请发送至邮箱：design@eutronsense.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job 4: MEMS工艺工程师 -->
+            <div class="job-item border-t border-gray-800" data-job="4">
+                <div class="py-8 px-4 cursor-pointer hover:bg-slate-900/50 transition-colors js-job-trigger">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-xs text-gray-500 font-mono">04</span>
+                            <h2 class="job-title-text text-3xl md:text-4xl lg:text-5xl">MEMS工艺工程师</h2>
+                        </div>
+                        <span class="text-xs text-gray-500 mt-2">工作城市：苏州-工业园区</span>
+                    </div>
+                </div>
+
+                <div class="job-content px-4 pb-8">
+                    <div class="pl-8 md:pl-16 space-y-6">
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 职位描述 ]</h3>
+                            <p class="text-gray-300 text-sm">负责MEMS器件工艺开发、制程优化及良率提升工作。</p>
+                        </div>
+                        <div class="flex justify-end">
+                            <a href="mailto:mems@eutronsense.com"
+                                class="gold-border gold-text px-6 py-3 text-sm hover:bg-yellow-500/10 transition-colors rounded-sm">
+                                简历请发送至邮箱：mems@eutronsense.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job 5: 行政专员/助理 -->
+            <div class="job-item border-t border-gray-800 border-b" data-job="5">
+                <div class="py-8 px-4 cursor-pointer hover:bg-slate-900/50 transition-colors js-job-trigger">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-baseline gap-4">
+                            <span class="text-xs text-gray-500 font-mono">05</span>
+                            <h2 class="job-title-text text-3xl md:text-4xl lg:text-5xl">行政专员/助理</h2>
+                        </div>
+                        <span class="text-xs text-gray-500 mt-2">工作城市：孝感-孝南区</span>
+                    </div>
+                </div>
+
+                <div class="job-content px-4 pb-8">
+                    <div class="pl-8 md:pl-16 space-y-6">
+                        <div class="left-border-accent pl-6">
+                            <h3 class="gold-text text-sm font-medium mb-3 tracking-wider">[ 职位描述 ]</h3>
+                            <p class="text-gray-300 text-sm">负责日常行政事务、办公环境维护及后勤支持工作。</p>
+                        </div>
+                        <div class="flex justify-end">
+                            <a href="mailto:admin@eutronsense.com"
+                                class="gold-border gold-text px-6 py-3 text-sm hover:bg-yellow-500/10 transition-colors rounded-sm">
+                                简历请发送至邮箱：admin@eutronsense.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <!-- <footer class="bg-slate-950 py-8 px-6 border-t border-gray-900">
+        <div
+            class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
+            <p>&copy; 2026 元臻微电 EUTRONSENSE. All rights reserved.</p>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-gray-400 transition-colors">隐私政策</a>
+                <a href="#" class="hover:text-gray-400 transition-colors">使用条款</a>
+            </div>
+        </div>
+    </footer> -->
+
+    <script type="module">
+        import { initGlobalNav } from './nav.js';
+        import gsap from 'https://cdn.skypack.dev/gsap'; // 确保引入了 GSAP
+
+        // 1. 注入顶部导航栏
+        initGlobalNav();
+
+        // 2. 丝滑的页面入场动画 (交响级 Stagger)
+        const tl = gsap.timeline();
+
+        // 背景整体淡入
+        tl.fromTo('body', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' })
+            // 头部文字错落浮现
+            .fromTo('.gs-reveal',
+                { opacity: 0, y: 30 },
+                { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }, "-=0.2"
+            )
+            // 底部标签浮现
+            .fromTo('.gs-reveal-up',
+                { opacity: 0, y: 20 },
+                { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, "-=0.6"
+            )
+            // 职位列表依次滑入
+            .fromTo('.job-item',
+                { opacity: 0, x: -20 },
+                { opacity: 1, x: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out' }, "-=0.4"
+            );
+
+        // 3. 修复模块化作用域下的手风琴点击事件
+        document.querySelectorAll('.js-job-trigger').forEach(trigger => {
+            trigger.addEventListener('click', function () {
+                // 找到当前被点击的 job-item 容器
+                const targetJob = this.closest('.job-item');
+                const isActive = targetJob.classList.contains('active');
+
+                // 关闭所有其他的 job-item
+                document.querySelectorAll('.job-item').forEach(job => {
+                    job.classList.remove('active');
+                });
+
+                // 如果原本不是激活状态，则展开它
+                if (!isActive) {
+                    targetJob.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

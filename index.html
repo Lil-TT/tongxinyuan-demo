@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aether 1.0 - Full Experience Replica</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./nav.css">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
 </head>
 
@@ -41,15 +42,21 @@
 
   <canvas class="webgl-canvas" style="z-index: 1;"></canvas>
 
-  <header class="fixed-ui stage2-el">
-    <div class="logo">AETHER : 1</div>
-    <div class="menu">Sound — MENU</div>
-  </header>
-  <div class="bottom-action fixed-ui stage2-el">
-    <button class="ask-btn">Ask Aether</button>
-  </div>
-
   <div class="ui-container stage2-el">
+
+    <div class="ui-layer ui-stage-1 hero-left">
+      <h1>xMR晶圆<br>xMR-MEMS传感核心晶圆<br>专业提供者</h1>
+    </div>
+
+    <div class="ui-layer ui-stage-1 hero-right">
+      <div class="icon-circles">
+        <svg width="44" height="28" viewBox="0 0 44 28">
+          <circle cx="14" cy="14" r="13" stroke="rgba(255,255,255,0.7)" stroke-width="1" fill="none" />
+          <circle cx="30" cy="14" r="13" stroke="rgba(255,255,255,0.7)" stroke-width="1" fill="none" />
+        </svg>
+      </div>
+      <p>Close the Gap Between<br>Current and Future</p>
+    </div>
 
     <div class="ui-layer ui-stage-2">
 
@@ -57,7 +64,8 @@
         <div class="param-text">xMR薄膜晶圆<br><span>xMR各种结构和性能的晶圆。8 吋、12 吋</span></div>
         <svg class="guide-line left-line" viewBox="0 0 250 150" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="279.5" cy="100" r="1.5" fill="white" />
-          <path d="M279.5 100L241.344 35.7552C228.731 14.5179 205.859 1.5 181.159 1.5H1" stroke="white" stroke-width="0.5" />
+          <path d="M279.5 100L241.344 35.7552C228.731 14.5179 205.859 1.5 181.159 1.5H1" stroke="white"
+            stroke-width="0.5" />
           <circle cx="1.5" cy="1.5" r="1.5" fill="white" />
         </svg>
       </div>
@@ -66,7 +74,8 @@
         <div class="param-text">xMR传感核心晶圆<br><span>xMR桥路结构。8 吋、12 吋</span></div>
         <svg class="guide-line right-line" viewBox="0 0 250 150" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="1.5" cy="100.5" r="1.5" fill="white" />
-          <path d="M1.5 100L39.6555 35.7552C52.2686 14.5179 75.1407 1.5 99.8412 1.5H280" stroke="white" stroke-width="0.5" />
+          <path d="M1.5 100L39.6555 35.7552C52.2686 14.5179 75.1407 1.5 99.8412 1.5H280" stroke="white"
+            stroke-width="0.5" />
           <circle cx="279.5" cy="1.5" r="1.5" fill="white" />
         </svg>
       </div>
@@ -131,7 +140,7 @@
     </div>
   </div>
 
-  <div class="scroll-container stage2-el" style="height: 4600vh; width: 100%; pointer-events: none;"></div>
+  <div class="scroll-container stage2-el" style="height: 2300vh; width: 100%; pointer-events: none;"></div>
 
   <div class="circular-progress-w stage2-el">
     <svg class="progress-ring" width="800" height="800">
@@ -145,8 +154,8 @@
         </filter>
 
         <mask id="ringMask">
-          <circle class="progress-ring__circle" stroke="white" stroke-width="2" fill="transparent" r="380"
-            cx="400" cy="400" stroke-linecap="round" />
+          <circle class="progress-ring__circle" stroke="white" stroke-width="2" fill="transparent" r="380" cx="400"
+            cy="400" stroke-linecap="round" />
         </mask>
       </defs>
 

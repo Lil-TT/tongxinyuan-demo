@@ -449,7 +449,7 @@ header {
 }
 
 .guide-line.left-line {
-  left: calc(100% + 5px); 
+  left: calc(100% + 5px);
   top: 31px;
 }
 
@@ -647,9 +647,11 @@ header {
 /* 1. 统一字体：强制全场所有引线标注使用 Space Mono 字体，确保科技感规整 */
 .ui-layer [class*="param-text"],
 .ui-layer [class*="callout-text"] {
-  font-family: 'Space Mono', monospace; 
-  text-align: left; /* 强制左对齐，保持秩序感 */
-  line-height: 1.2; /* 紧凑主标题行高，减少与副标题的间距 */
+  font-family: 'Space Mono', monospace;
+  text-align: left;
+  /* 强制左对齐，保持秩序感 */
+  line-height: 1.2;
+  /* 紧凑主标题行高，减少与副标题的间距 */
 }
 
 /* 2. 第一行文字样式精调 (例如：8寸, xMR薄膜晶圆) */
@@ -661,7 +663,8 @@ header {
   font-weight: 600;
   /* 使用纯白，达到最高亮度 */
   color: #ffffff;
-  letter-spacing: 1px; /* 稍微增加字距，提升易读性 */
+  letter-spacing: 1px;
+  /* 稍微增加字距，提升易读性 */
 }
 
 /* 3. 第二行文字样式精调 (在 span 标签内) (例如：AMR GMR TMR) */
@@ -673,8 +676,10 @@ header {
   font-weight: 400;
   /* 使用 80% 透明度的白，达到高级的浅灰色效果，降低视觉干扰 */
   color: rgba(255, 255, 255, 0.8);
-  
-  display: block; /* 确保占满一行，强制换行 */
-  margin-top: 8px; /* 【关键】：精准设定第一行与第二行的垂直间距，保持紧凑不拥挤 */
+
+  display: block;
+  /* 确保占满一行，强制换行 */
+  margin-top: 8px;
+  /* 【关键】：精准设定第一行与第二行的垂直间距，保持紧凑不拥挤 */
   letter-spacing: 0.5px;
 }

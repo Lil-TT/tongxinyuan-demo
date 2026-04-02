@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我们 - Aether 1.0</title>
+    <link rel="stylesheet" href="./nav.css">
+    <style>
+        /* =========================================
+       背景层设计
+    ========================================= */
+        body.about-page {
+            background: #151517;
+            height: 180vh;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+            font-family: 'PingFang SC', -apple-system, sans-serif;
+        }
+
+        /* 点状颗粒背景 (根据你的 Union 样式调整为全屏顶端对齐) */
+        .bg-noise {
+            position: absolute;
+            width: 100%;
+            height: 1142px;
+            left: 0;
+            top: 0;
+            background: url('./noise.png');
+            /* 如果有噪点图可以换上 */
+            opacity: 0.05;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 背景中的盒子图片 (贴近左侧) */
+        .bg-box-img {
+            position: absolute;
+            width: 700px;
+            height: 385px;
+            left: 178px;;
+            top: 163px;
+            /* 🌟 去掉 /contain，拆分写更清晰 */
+            background: url('./contact_box.png') no-repeat center;
+            background-size: 80%;
+            /* 也可以改成 150% 等你满意的数值 */
+            z-index: 2;
+        }
+
+        /* =========================================
+       卡片层设计 (自适应宽度并贴右)
+    ========================================= */
+        .about-container {
+            position: relative;
+            /* 🌟 核心修改：最大宽度为设计图尺寸，屏幕缩小时占70% */
+            width: 70%;
+            max-width: 1228px;
+            /* 靠右贴合，保留顶部和底部的安全间距 */
+            margin: 192px 0 100px auto;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(97, 116, 157, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 2;
+            box-sizing: border-box;
+            border-top-left-radius: 24px;
+            /* 左上角圆角 */
+        }
+
+        /* --- 区块 1 (作为圆环的定位父级) --- */
+        .sec-1 {
+            position: relative;
+            /* 🌟 核心修改：让圆环以这个区块为基准进行绝对定位 */
+            padding-top: 90px;
+            padding-bottom: 100px;
+            min-height: 740px;
+            z-index: 1;
+        }
+
+        /* 装饰圆环 (绝对居中) */
+        .card-circle-bg {
+            position: absolute;
+            width: 620px;
+            height: 620px;
+            /* 🌟 核心修改：无论容器怎么缩小，永远处于 sec-1 的正中心 */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(97, 116, 157, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            /* 保证圆环在文字下方 */
+        }
+
+        /* 🌟 核心修改：防止容器缩小时文字撑爆卡片 */
+        .sec-1 h1 {
+            width: 100%;
+            max-width: 935px;
+            /* 最大不超过设计图宽度 */
+            font-weight: 400;
+            font-size: 48px;
+            line-height: 67px;
+            color: #FFFFFF;
+            margin: 0 0 40px 0;
+        }
+
+        .sec-1 p,
+        .sec-2 p {
+            width: 100%;
+            max-width: 577px;
+            /* 最大不超过设计图宽度 */
+            /* ... 字体等其他属性保留原样 ... */
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 32px;
+            color: #E8E8E8;
+            margin: 0;
+        }
+
+
+        /* =========================================
+       内部区块排版
+    ========================================= */
+        .section-block {
+            /* 分割线直接用 border-bottom 实现，宽1228px自动撑满 */
+            border-bottom: 1px solid rgba(97, 116, 157, 0.3);
+            /* 左右内边距 590 - 500 = 90px */
+            padding: 0 90px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* 最后一个区块不需要底部分割线 */
+        .section-block:last-child {
+            border-bottom: none;
+        }
+
+        /* --- 区块 1 --- */
+
+        .brand-logo {
+            width: 189px;
+            height: 50px;
+            background: url('./logo.png') no-repeat left center/contain;
+            margin-bottom: 40px;
+            margin-top: 60px;
+        }
+
+
+        /* --- 区块 2 --- */
+        .sec-2 {
+            padding-top: 80px;
+            padding-bottom: 80px;
+            min-height: 290px;
+        }
+
+        .sub-title {
+            font-weight: 500;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            /* opacity: 0.5 */
+            margin: 0 0 40px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* =========================================
+   区块 3 - 联系我们 (重构版)
+========================================= */
+        .sec-3 {
+            padding-top: 80px;
+            padding-bottom: 120px;
+        }
+
+        /* 标题行：标题 + 箭头 */
+        .contact-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 60px;
+            /* 与下方卡片的间距 */
+        }
+
+        .contact-title {
+            font-weight: 500;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+            letter-spacing: 2px;
+        }
+
+        .contact-arrow {
+            width: 24px;
+            height: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            transition: transform 0.3s ease;
+        }
+
+        .contact-header:hover .contact-arrow {
+            transform: translateX(4px);
+            /* 悬停时箭头微动 */
+        }
+
+        /* 2x2 网格布局 */
+        .locations-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            /* 两列等宽 */
+            gap: 48px 80px;
+            /* 行间距48px，列间距80px */
+        }
+
+        /* 单个地点卡片 */
+        .location-card {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            /* 城市名与地址/联系方式的间距 */
+        }
+
+        .location-card h4 {
+            font-weight: 500;
+            font-size: 18px;
+            color: #FFFFFF;
+            margin: 0;
+        }
+
+        .location-card p {
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.6);
+            /* 次要信息降低透明度 */
+            margin: 0;
+        }
+
+        .sec-4 {
+            min-height: 156px;
+        }
+
+        @media (max-width: 992px) {
+            .about-container {
+                width: 90%;
+                /* 在手机上放大占比 */
+                margin-top: 120px;
+            }
+
+            .section-block {
+                padding: 0 40px;
+                /* 缩小内边距 */
+            }
+
+            .sec-1 h1 {
+                font-size: 32px;
+                line-height: 1.4;
+            }
+
+            .card-circle-bg {
+                width: 400px;
+                /* 圆环也跟着缩小，防止溢出屏幕 */
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body class="about-page">
+
+    <div class="bg-noise"></div>
+    <div class="bg-box-img"></div>
+
+    <div class="about-container">
+
+        <section class="section-block sec-1">
+            <div class="card-circle-bg"></div>
+            <div class="brand-logo"></div>
+            <h1>专业提供 xMR 晶圆和 xMR 传感核心晶圆的高科技企业</h1>
+            <p>
+                我们致力于提升下游磁传感企业技术升级、产品迭代的企业。我们致力于驱动下游企业在新兴产业布局的企业。我们是一家面向未来多传感器融合、先进封装和异构技术的底层技术提供商。
+                <br><br>
+                从成立到现在的时间里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。从成立到现在的19个月里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。
+            </p>
+        </section>
+
+        <section class="section-block sec-2">
+            <div class="sub-title">未来愿景 / VISION</div>
+            <p>元臻微电将成为国内一家面向未来，专业提供多传感器融合和异构的底层技术的高科技企业。</p>
+        </section>
+
+        <section class="section-block sec-3">
+            <!-- 标题区 -->
+            <div class="contact-header">
+                <h3 class="contact-title">联系我们 / CONTACT</h3>
+                <svg class="contact-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+
+            <!-- 2x2 网格内容区 -->
+            <div class="locations-grid">
+                <!-- 上海 -->
+                <div class="location-card">
+                    <h4>上海市，青浦区</h4>
+                    <p>徐泾镇汇龙路88号8楼</p>
+                </div>
+
+                <!-- 联系人1 -->
+                <div class="location-card">
+                    <h4>联系人：刘女士</h4>
+                    <p>电话：182 8035 1027</p>
+                </div>
+
+                <!-- 孝感 -->
+                <div class="location-card">
+                    <h4>湖北省，孝感市</h4>
+                    <p>孝汉大道29号高创智造产业园西4厂房</p>
+                </div>
+
+                <!-- 联系人2 -->
+                <div class="location-card">
+                    <h4>联系人：韩先生</h4>
+                    <p>电话：136 0938 2791</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-block sec-4"></section>
+    </div>
+
+    <script type="module">
+        import { initGlobalNav } from './nav.js';
+        import gsap from 'gsap';
+
+        // 注入顶部导航栏
+        initGlobalNav();
+
+        // 丝滑的页面入场动画
+        gsap.fromTo('body', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' });
+
+        // 卡片从下往上浮现动画
+        gsap.fromTo('.about-container',
+            { opacity: 0, y: 50 },
+            { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: 'power3.out' }
+        );
+    </script>
+</body>
+
+</html>

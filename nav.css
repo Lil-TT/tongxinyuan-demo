@@ -1,0 +1,181 @@
+body { margin: 0; padding: 0; /* 基础重置 */ }
+
+::-webkit-scrollbar{
+  display: none;
+}
+
+.navigation-w {
+  --color-text: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 1.6rem 40px 0 40px;
+  /* 顶部和左右的间距 */
+  box-sizing: border-box;
+  z-index: 1000;
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* 原版高级 Grid 布局，1fr推开两边，auto适应右侧面板 */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  pointer-events: none;
+  /* 让空白区域点击穿透 */
+}
+
+/* 恢复内部元素的点击交互 */
+.nav__logo-w,
+.navigation {
+  pointer-events: auto;
+}
+
+/* 左侧 Logo 精确参数 */
+.nav-logo-img {
+  width: 121px;
+  height: 32px;
+  opacity: 1;
+  object-fit: contain;
+}
+
+/* =========================================
+   右侧悬浮导航面板 (Aether 原版风格)
+========================================= */
+.navigation {
+  background-color: rgba(5, 13, 21, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  /* 隐约的玻璃边缘 */
+  border-radius: 1.5rem;
+  width: 420px;
+  /* 面板宽度 */
+  height: 52px;
+  /* 初始闭合高度 */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px;
+}
+
+/* 顶部触发区 */
+.nav__header {
+  background: transparent;
+  border: none;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.menu__label {
+  font-family: PingFang SC;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.nav__burger {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* =========================================
+   菜单分割线样式
+========================================= */
+.nav__header {
+  position: relative;
+  /* 🌟 确保按钮是相对定位，否则线会跑出去 */
+  /* ... (保留你原来的 nav__header 其他样式) ... */
+}
+
+.nav__line {
+  background-color: #ffffff;
+  opacity: 0.15;
+  /* 原版是0.1，稍微加深一点在深色背景更清晰 */
+  width: 100%;
+  height: 1px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform-origin: 50% 50%;
+  /* 从中心向两边展开 */
+  transform: scaleX(0);
+  /* 初始状态：横向缩放到0，完全隐藏 */
+}
+
+/* =========================================
+   菜单列表与原生小圆点特效
+========================================= */
+.nav__list {
+  margin-top: 50px;
+  list-style: none;
+  margin: 0;
+  padding: 10px 0 20px 10px;
+  /* 留出左边距给圆点 */
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.nav__item {
+  position: relative;
+  /* 初始不可见，准备触发动画 */
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.nav__link {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: PingFang SC;
+  font-weight: 400;
+  font-style: Regular;
+  font-size: 40px;
+  line-height: 100%;
+  letter-spacing: 2px;
+  text-decoration: none;
+  transition: color 0.4s ease;
+  position: relative;
+}
+
+.nav__link:hover {
+  color: #ffffff;
+}
+
+/* 🟢 核心亮点：原版小圆点伪元素生成器 (常驻暗色版) */
+.nav__link::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-15px, -50%) scale(1);
+  /* 默认大小 */
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3);
+  /* 默认常驻，但是是暗淡的半透明 */
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  /* 增加形变过渡 */
+}
+
+/* 当鼠标悬停时，或者该栏目处于激活状态(w--current)时，圆点高亮并微微放大 */
+.nav__item:hover .nav__link::before,
+.nav__link.w--current::before {
+  background-color: #ffffff;
+  /* 变成纯白高亮 */
+  transform: translate(-15px, -50%) scale(1.5);
+  /* 微微放大1.5倍，增加交互反馈感 */
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  /* 可选：加一点微弱的发光效果 */
+}
+
+/* 当前所在页面的文字高亮 */
+.nav__link.w--current {
+  color: #ffffff;
+}

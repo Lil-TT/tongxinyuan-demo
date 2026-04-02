@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>新闻资讯 - Aether 1.0</title>
+  <link rel="stylesheet" href="./nav.css">
+  <style>
+    /* 新闻页专属的一点点排版样式 */
+    body { background-color: #050d15; color: white; padding-top: 100px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>最新新闻资讯</h1>
+    <p>这是用模块化生成的新页面，没有加载庞大的 3D 引擎。</p>
+  </div>
+
+  <script type="module">
+    import { initGlobalNav } from './nav.js';
+    import gsap from 'gsap';
+    
+    // 注入全局导航
+    initGlobalNav();
+    
+    // 子页面的丝滑进场动画
+    gsap.fromTo('body', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' });
+  </script>
+</body>
+</html>
