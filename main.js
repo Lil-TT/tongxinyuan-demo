@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { initGlobalNav } from './nav.js';
+import Waves from './Waves.js'; // 🌟 引入你的波纹类
 import GUI from 'lil-gui';
 
 // 🌟 引入 HDR 环境贴图加载器
@@ -42,12 +43,72 @@ camera3D.position.z = 18;
 const bgScrollObj = { offset: 0 };
 let meteorGroup;
 let meteorMeshes = [];
+let waveSystem;
+let globalClock = new THREE.Clock();
+
+const parallaxGroup = new THREE.Group();
+scene3D.add(parallaxGroup); // 视差组挂载到场景
+
 const modelGroup = new THREE.Group();
-scene3D.add(modelGroup);
+parallaxGroup.add(modelGroup); // 将 modelGroup 装入视差组，完美避开 GSAP 冲突！
+
+let innerWaferL, innerWaferR;  // 内部真实的网格，专用于物理浮动
+const floatState = { val: 0 }; // 浮动强度控制器，0=静止，1=最大浮动
 let caseLid, earbudLeft, earbudRight;
 let magicFollowLight;
 let lidInitialRot = 0;
 let mesh;
+
+// ==========================================
+// 🌟 3D 空间到 2D 屏幕的投影追踪系统
+// ==========================================
+const projectedPosition = new THREE.Vector3();
+
+// 追踪点配置矩阵
+// 注：meshRef 使用函数返回，是因为在初始化阶段 earbudLeft 等变量还未加载完毕
+const trackingPoints = [
+  // Stage 2 追踪点
+  {
+    elementId: '.ui-stage-2 .param.left',
+    meshRef: () => innerWaferL,
+    localPos: new THREE.Vector3(-1.0, 0.5, 0),
+    isLeftUI: true
+  },
+  {
+    elementId: '.ui-stage-2 .param.right',
+    meshRef: () => innerWaferR,
+    localPos: new THREE.Vector3(1.0, 0.5, 0)
+  },
+  // Stage 3 追踪点 (特写阶段)
+  {
+    elementId: '.ui-stage-3 .callout-bl',
+    meshRef: () => innerWaferR,
+    localPos: new THREE.Vector3(-1.2, 0, 0)
+  },
+  {
+    elementId: '.ui-stage-3 .callout-tr',
+    meshRef: () => innerWaferR,
+    localPos: new THREE.Vector3(1.2, 0, 0)
+  },
+  // Stage 4 追踪点
+  {
+    elementId: '.ui-stage-4 .callout-s4-br',
+    meshRef: () => innerWaferL,
+    localPos: new THREE.Vector3(0, -1.0, 0)
+  },
+  {
+    elementId: '.ui-stage-4 .callout-s4-tr',
+    meshRef: () => innerWaferL,
+    localPos: new THREE.Vector3(0, 1.0, 0)
+  }
+];
+
+// 初始化 DOM 元素引用 (在加载完成后调用)
+function initTrackingElements() {
+  trackingPoints.forEach(point => {
+    point.domElement = document.querySelector(point.elementId);
+  });
+}
 
 // Shader 背景特效专用变量
 let time_bg = 0;
@@ -135,43 +196,24 @@ particlesGroup.visible = false;
 particlesGroup.position.z = -20;
 scene3D.add(particlesGroup);
 
-function createDefinitiveRipple() {
-  const geometry = new THREE.PlaneGeometry(60, 60, 1, 1);
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uColor: { value: new THREE.Color(0x213245) }
-    },
-    fog: false,
-    vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `,
-    fragmentShader: `
-            uniform float uTime;
-            uniform vec3 uColor;
-            varying vec2 vUv;
-            void main() {
-                float dist = distance(vUv, vec2(0.5));
-                float wave = cos(dist * 80.0 - uTime * 0.5); 
-                float pulse = pow((wave + 1.5) / 2.0, 2.5); 
-                vec3 finalColor = uColor * (0.1 + pulse * 2.8); 
-                float alpha = (0.1 + pulse * 2.8) * smoothstep(0.5, 0.05, dist);
-                gl_FragColor = vec4(finalColor, alpha);
-            }
-        `,
-    transparent: true, depthWrite: false, side: THREE.DoubleSide
-  });
-  mesh = new THREE.Mesh(geometry, material);
-  mesh.rotation.x = 0;
-  mesh.rotation.y = 0;
-  mesh.position.set(0, 0, 0);
-  return mesh;
+// 生成一张程序化噪点贴图 (代替外部加载，不会跨域报错)
+function createNoiseTexture() {
+  const size = 256;
+  const data = new Uint8Array(size * size * 4);
+  for (let i = 0; i < size * size * 4; i += 4) {
+    const val = Math.random() * 255;
+    data[i] = val; data[i + 1] = val; data[i + 2] = val; data[i + 3] = 255;
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.needsUpdate = true;
+  return texture;
 }
-particlesGroup.add(createDefinitiveRipple());
+
+// 🌟 初始化波纹系统
+const noiseTex = createNoiseTexture(); 
+waveSystem = new Waves(noiseTex);
+waveSystem.instance.visible = false; // 先隐藏
+scene3D.add(waveSystem.instance);
 
 function createSandParticles() {
   const geometry = new THREE.BufferGeometry();
@@ -311,7 +353,7 @@ manager.onProgress = function (url, itemsLoaded, itemsTotal) {
 // ==========================================
 // 3. UI 动画重构：无限循环与完美归正
 // ==========================================
-gsap.set('.loader__circle', { opacity: 0, filter: 'blur(16px)' });
+gsap.set('.loader__circle', { opacity: 0, filter: 'blur(16px)', rotationZ: -45 });
 gsap.set('.tagcloud--item', { opacity: 0 });
 
 const introTl = gsap.timeline({ delay: 0.5 });
@@ -326,8 +368,7 @@ introTl
 
 function playSpinCycle() {
   gsap.to('.loader__circle:nth-child(-n+6)', {
-    rotationX: (i) => i % 2 === 0 ? "+=360" : "-=360",
-    rotationY: (i) => i % 2 === 0 ? "-=360" : "+=360",
+    rotationX: "+=360",
     duration: 3.5,
     ease: 'power3.inOut',
     stagger: 0.12,
@@ -434,7 +475,7 @@ Promise.all([
     });
   };
 
-  // const matLeft = createWaferMaterial(texLeft);
+  const matLeft = createWaferMaterial(texLeft);
   const matRightFront = createWaferMaterial(texRightTop);
   const matRightBack = createWaferMaterial(texRightBottom);
 
@@ -501,7 +542,7 @@ Promise.all([
   if (earbudLeft) {
     earbudLeft.traverse((mesh) => {
       if (mesh.isMesh) {
-        // mesh.material = matLeft;
+        mesh.material = matLeft;
         mesh.castShadow = true; mesh.receiveShadow = true;
       }
     });
@@ -539,10 +580,51 @@ Promise.all([
     });
   }
 
-  // D. 结构挂载 
-  if (caseLid) { modelGroup.attach(caseLid); lidInitialRot = caseLid.rotation.x; }
-  if (earbudLeft) modelGroup.attach(earbudLeft);
-  if (earbudRight) modelGroup.attach(earbudRight);
+  // D. 结构挂载与 GSAP 动画解耦包装
+  if (caseLid) {
+    modelGroup.attach(caseLid);
+    lidInitialRot = caseLid.rotation.x;
+  }
+
+  // 🌟 左晶圆解耦（创造替身给 GSAP，保护真身自由漂浮）
+  if (earbudLeft) {
+    innerWaferL = earbudLeft;
+    modelGroup.attach(innerWaferL); // 提取并计算真实世界坐标
+
+    earbudLeft = new THREE.Group(); // 创建替身
+    earbudLeft.position.copy(innerWaferL.position);
+    earbudLeft.rotation.copy(innerWaferL.rotation);
+    earbudLeft.scale.copy(innerWaferL.scale);
+
+    modelGroup.add(earbudLeft); // 替身加入模型组
+
+    // 真实模型位置归零，并放入替身内部
+    innerWaferL.position.set(0, 0, 0);
+    innerWaferL.rotation.set(0, 0, 0);
+    innerWaferL.scale.set(1, 1, 1);
+    earbudLeft.add(innerWaferL);
+  }
+
+  // 🌟 右晶圆解耦
+  if (earbudRight) {
+    innerWaferR = earbudRight;
+    modelGroup.attach(innerWaferR);
+
+    earbudRight = new THREE.Group();
+    earbudRight.position.copy(innerWaferR.position);
+    earbudRight.rotation.copy(innerWaferR.rotation);
+    earbudRight.scale.copy(innerWaferR.scale);
+
+    modelGroup.add(earbudRight);
+
+    innerWaferR.position.set(0, 0, 0);
+    innerWaferR.rotation.set(0, 0, 0);
+    innerWaferR.scale.set(1, 1, 1);
+    earbudRight.add(innerWaferR);
+  }
+
+  // 🌟 初始化追踪 DOM 节点
+  initTrackingElements();
 
   // 🌟 核心：通知系统资产准备就绪
   isAssetsLoaded = true;
@@ -578,7 +660,7 @@ function initScrollTimeline() {
   // 🌟 定义复用连招：一键在特定阶段触发 4 步丝滑生长动画
   const buildGuideLineAnim = (tl, stageSelector, startLabel) => {
     // 满足你的需求：在阶段动作刚开始的 0.2 秒后立马触发！
-    const startTime = `${startLabel}+=0.5`;
+    const startTime = `${startLabel}+=0.3`;
 
     tl
       // Step 1: 靠晶圆的起点圆点 "啵" 地弹出
@@ -684,7 +766,7 @@ function initScrollTimeline() {
         // 🌟 因为有了明确的 25% 阈值作为防误触屏障，我们可以把 delay 调小
         // 让吸附反应更加迅速灵敏
         delay: 0.2,
-        duration: { min: 0.8, max: 3 }, // 吸附动画的耗时，最快不低于0.8秒，最慢1.5秒，拒绝瞬间闪现
+        duration: { min: 2, max: 3 }, // 吸附动画的耗时，最快不低于0.8秒，最慢1.5秒，拒绝瞬间闪现
         ease: "power2.inOut", // 吸附时的缓动
         directional: false // 吸附时顺着用户的滚动方向找最近的标签
       },
@@ -728,9 +810,32 @@ function initScrollTimeline() {
   tl.to(modelGroup.position, { x: -1.2, y: -0.65, z: -0.16, duration: 1.0, ease: "power1.inOut" }, "stage1")
     .to(modelGroup.rotation, { x: -0.25159, y: 0.288407, z: 0.568407, duration: 1.0, ease: "power1.inOut" }, "stage1");
 
-  // 2. 引力波网格(mesh)沉降：时长从 2.6 降到 1.5，并大幅提前触发时间
-  tl.to(mesh.position, { y: -16, duration: 1.2, ease: "power1.inOut" }, "stage1+=0.2")
-    .to(mesh.rotation, { x: -Math.PI / 2, y: Math.PI / 8, duration: 1.5, ease: "power1.inOut" }, "stage1+=0.2");
+  // ✅ 2. 🌟 新版波纹无缝绑定滚轮！
+  // 在 stage1 触发时，显示波纹，并预设光影强度
+  tl.set(waveSystem.instance, { visible: true }, "stage1");
+  tl.set(waveSystem.material.uniforms.uLightIntensity, { value: 1.5 }, "stage1");
+  tl.set(waveSystem.material.uniforms.uIntensity, { value: 1.2 }, "stage1");
+  tl.set(waveSystem.wireframeMaterial.uniforms.uLightIntensity, { value: 1.5 }, "stage1");
+  tl.set(waveSystem.wireframeMaterial.uniforms.uIntensity, { value: 1.2 }, "stage1");
+
+  // 让波纹从中心向外绽放，耗时 1.5 秒 (对应滚轮滚动的跨度)
+  tl.fromTo(waveSystem.material.uniforms.uWaveTransition,
+    { value: 0 },
+    {
+      value: 1,
+      duration: 1.5, 
+      ease: "power2.inOut",
+      onUpdate: function() {
+        // 🌟 核心技巧：在用户滚动时，实时将实心材质的进度同步给线框材质
+        const currentVal = waveSystem.material.uniforms.uWaveTransition.value;
+        waveSystem.wireframeMaterial.uniforms.uWaveTransition.value = currentVal;
+        
+        // 增加额外的激荡感
+        waveSystem.material.uniforms.uTime.value += Math.sin(currentVal * Math.PI) * 0.005;
+      }
+    },
+    "stage1+=0.2" // 在盒子微动 0.2 秒后开始爆发
+  );
 
   // 3. 晶圆预备上浮：时长从 1.7 降到 1.0
   tl.to(earbudLeft.position, { y: w1Initial.pos.y + 0.5, z: w1Initial.pos.z + 1, duration: 1.0, ease: "power1.inOut" }, "stage1");
@@ -743,6 +848,7 @@ function initScrollTimeline() {
   // 假设这是晶圆飞到位的节点，我们准备展示文案
   // 容器本身只控制基础显示
   tl.to(".ui-stage-2", { opacity: 1, duration: 0.4 }, "stage2");
+  tl.to(floatState, { val: 1, duration: 1.5, ease: "power2.inOut" }, "stage2");
 
   // 🔥 一键挂载动画！在 stage2 触发后 0.2s 自动生成所有 SVG 线条动画
   buildGuideLineAnim(tl, ".ui-stage-2", "stage2");
@@ -750,10 +856,10 @@ function initScrollTimeline() {
   tl.to(modelGroup.position, { x: -3.5, y: -8.5, z: 1.5, duration: 0.6, ease: "power2.out" }, "stage2")
     .to(modelGroup.rotation, { z: 0.2, duration: 0.6, ease: "power2.out" }, "stage2");
 
-  tl.to(earbudLeft.position, { x: 0.9, y: w1Initial.pos.y + 7, z: w1Initial.pos.z + 8, duration: 0.7, ease: "power2.out" }, "stage2")
+  tl.to(earbudLeft.position, { x: 0.9, y: w1Initial.pos.y + 7, z: w1Initial.pos.z + 8, duration: 0.9, ease: "power2.out" }, "stage2")
     .to(earbudLeft.rotation, { x: Math.PI, y: -Math.PI / 2, z: 0.1, duration: 0.9, ease: "power2.out" }, "stage2");
 
-  tl.to(earbudLeft.position, { x: 1.2, y: w1Initial.pos.y + 8.8, z: w1Initial.pos.z + 6, duration: 0.6, ease: "power2.out" }, "stage2+=0.7")
+  tl.to(earbudLeft.position, { x: 1.2, y: w1Initial.pos.y + 8.8, z: w1Initial.pos.z + 6, duration: 0.4, ease: "power2.out" }, "stage2+=0.9")
 
   tl.to(earbudLeft.position, { x: 0.62, y: 6.11, z: w1Initial.pos.z + 8.8, duration: 0.6, ease: "power2.out" }, "stage2+=1.3")
     .to(earbudLeft.rotation, { x: 2.70, y: -2.42159265358979, duration: 0.5, ease: "power2.out" }, "stage2+=0.9");
@@ -773,12 +879,10 @@ function initScrollTimeline() {
   // ------------------------------------------
   tl.addLabel("stage3", 3.0);
   tl.to(".ui-stage-2", { opacity: 0, duration: 0.4 }, "stage3");
-  tl.set(".ui-stage-3", { opacity: 1 }, "stage3+=0.1");
+  tl.to(".ui-stage-3", { opacity: 1, duration: 0.4 }, "stage3+=0.1");
 
   // 🔥 一键挂载动画！(只要 ui--stage3 内部有 .param 结构就会自动生效)
   buildGuideLineAnim(tl, ".ui-stage-3", "stage3");
-  tl.fromTo([".stage3-title", ".callout"], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, "stage3+=0.2");
-  tl.fromTo(".spec-item", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out", stagger: 0.15 }, "stage3+=0.4");
 
   tl.to(earbudLeft.position, { x: 0.01, y: 6.07, z: w1Initial.pos.z + 6, duration: 1, ease: "power2.out" }, "stage3")
     .to(earbudLeft.rotation, { x: 0.0315926535897932, y: 2.21840734641021, z: 0.561592653589793, duration: 1, ease: "power2.out" }, "stage3+=0.3");
@@ -795,6 +899,10 @@ function initScrollTimeline() {
   // ------------------------------------------
   tl.addLabel("stage4", 5.0);
   tl.to(".ui-stage-3", { opacity: 0, duration: 0.4 }, "stage4");
+  tl.to(".ui-stage-4", { opacity: 1, duration: 0.4 }, "stage4+=0.4");
+
+  // 🔥 一键挂载动画！
+  buildGuideLineAnim(tl, ".ui-stage-4", "stage4");
 
   tl.to(earbudLeft.position, { x: -0.32, z: w1Initial.pos.z + 6, duration: 0.5, ease: "power2.out" }, "stage4")
     // 🌟【优化 2】：删去了导致大陀螺的 Math.PI * 2，只留下 0.9 的精确角度。
@@ -810,20 +918,12 @@ function initScrollTimeline() {
   tl.to(earbudRight.position, { x: 0.61, y: 5.93, z: w2Initial.pos.z + 8.6, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.7")
     .to(earbudRight.rotation, { y: -2.93, duration: 0.8, ease: "power2.inOut" }, "stage4+=0.7");
 
-  tl.set(".ui-stage-4", { opacity: 1 }, "stage4+=0.4");
-
-  // 🔥 一键挂载动画！
-  buildGuideLineAnim(tl, ".ui-stage-4", "stage4");
-
-  tl.fromTo([".stage4-title", ".ui-stage-4 .callout"],
-    { opacity: 0, x: (i) => i === 0 ? -30 : 30 },
-    { opacity: 1, x: 0, duration: 0.8, ease: "power2.out", stagger: 0.2 }, "stage4+=1.2");
-
-
   // ------------------------------------------
   // Stage 5: 无缝连续的分离与防穿模重构合体 (⏱️ 提速一倍版)
   // ------------------------------------------
   tl.addLabel("stage5", 7.0);
+  // 🌟 停止漂浮：在合体前 0.5 秒内，强制让模型回正停稳，防止撞击时穿模对不准！
+  tl.to(floatState, { val: 0, duration: 0.5, ease: "power2.out" }, "stage5");
 
   // UI 淡出：duration 0.5 -> 0.25
   tl.to(".ui-stage-4", { opacity: 0, duration: 0.25 }, "stage5");
@@ -956,7 +1056,71 @@ function initScrollTimeline() {
 function animate() {
   requestAnimationFrame(animate);
 
+  // 获取两帧之间的时间差
+  const delta = globalClock.getDelta();
+
+  // ----------------------------------------------------
+  // 🌟 核心投影逻辑：遍历更新所有活跃的 UI 指示线
+  // ----------------------------------------------------
+  if (isAssetsLoaded && camera3D) {
+    trackingPoints.forEach(point => {
+      // 只有当 DOM 元素存在，且其父级阶段 (.ui-stage-x) 正在显示时才进行运算
+      // 这里通过检查最近的 ui-layer 的 opacity 属性来优化性能，避免隐藏状态下乱跑
+      const parentStage = point.domElement?.closest('.ui-layer');
+
+      if (point.domElement && parentStage && window.getComputedStyle(parentStage).opacity > 0) {
+        const targetMesh = point.meshRef();
+        if (targetMesh) {
+          // 1. 获取局部锚点的世界坐标
+          projectedPosition.copy(point.localPos);
+          targetMesh.localToWorld(projectedPosition);
+
+          // 2. 投影到摄像机的屏幕 NDC 坐标 [-1, 1]
+          projectedPosition.project(camera3D);
+
+          // 3. 转换为基于屏幕中心的像素偏移量
+          const x = (projectedPosition.x * window.innerWidth * 0.5);
+          const y = -(projectedPosition.y * window.innerHeight * 0.5);
+
+          // 4. 应用位移 (这里的 translate 就是你参考代码里随处变动的那个)
+          // 我们可以叠加一个 -50% 来修正元素自身的中心对齐
+          point.domElement.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        }
+      }
+    });
+  }
+
+  // 🌟 驱动新波纹系统
+  if (waveSystem) {
+    waveSystem.update(delta);
+  }
+
   const time = performance.now() * 0.0001;
+
+  // ----------------------------------------------------
+  // 🌟 1. 鼠标视差疏离效果 (Mouse Parallax)
+  // ----------------------------------------------------
+  // 逻辑：鼠标往左下(-1, -1)，模型整体组就往右上(+, +)躲避。
+  // 0.6 是偏移幅度，数字越大躲得越远，你可以自己调整手感
+  parallaxGroup.position.x = -mouseState.currentX * 0.6;
+  parallaxGroup.position.y = -mouseState.currentY * 0.6;
+
+  // ----------------------------------------------------
+  // 🌟 2. 晶圆微重力漂浮效果 (Micro-gravity Float)
+  // ----------------------------------------------------
+  if (innerWaferL && floatState.val > 0) {
+    // 乘以 floatState.val (0~1)，实现随动画阶段平滑开启/关闭
+    innerWaferL.position.y = Math.sin(time * 15) * 0.15 * floatState.val;
+    innerWaferL.position.x = Math.cos(time * 12) * 0.1 * floatState.val;
+    innerWaferL.rotation.z = Math.sin(time * 20) * 0.05 * floatState.val;
+  }
+
+  if (innerWaferR && floatState.val > 0) {
+    // 右耳的频率(14, 11, 19)和左耳错开，这样看起来不会像双胞胎在同步做广播体操，显得更杂乱自然
+    innerWaferR.position.y = Math.cos(time * 14) * 0.15 * floatState.val;
+    innerWaferR.position.x = Math.sin(time * 11) * 0.1 * floatState.val;
+    innerWaferR.rotation.z = Math.cos(time * 19) * 0.05 * floatState.val;
+  }
   time_bg += 0.016;
 
   mouseState.currentX += (mouseState.targetX - mouseState.currentX) * 0.05;

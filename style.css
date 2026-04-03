@@ -14,6 +14,43 @@ body {
 }
 
 /* =========================================
+   3D 屏幕投影指示线
+========================================= */
+.gl__projected-point {
+    position: absolute;
+    /* 初始定位在屏幕正中心，方便后续计算相对位移 */
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* 重要：防止遮挡鼠标交互 */
+    z-index: 100;
+
+    /* 默认隐藏，入场时才显示 */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease-out, visibility 0s linear 0.4s;
+}
+
+/* 激活状态 */
+.gl__projected-point.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.4s ease-out, visibility 0s linear 0s;
+}
+
+/* 调整 SVG 在指示点周围的位置 */
+.annotation-svg {
+    position: absolute;
+    /* 这个设置决定了线条是从圆点向哪个方向延伸，这里设置向右上方延伸 */
+    bottom: 0; 
+    left: 0; 
+}
+
+/* =========================================
    Stage 1: Loading 样式
    ========================================= */
 .loader-w {
@@ -396,9 +433,9 @@ header {
 
 /* 错落的 Y 轴定位 */
 .ui-stage-2 .param.left {
-  top: 22%;
+  top: 43%;
   /* 左侧明显偏上 */
-  left: 8%;
+  left: 25%;
   width: 320px;
 }
 
