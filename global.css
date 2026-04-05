@@ -1,0 +1,18 @@
+/* =========================================
+   引入本地阿里巴巴普惠体 (Alibaba PuHuiTi)
+   ========================================= */
+@font-face {
+    font-family: 'AlibabaPuHuiTi';
+    src: url('./AlibabaPuHuiTi-3-35-Thin.ttf') format('truetype');
+    font-weight: 300; /* 对应 Thin / 细体 */
+    font-style: normal;
+    font-display: swap; /* 优化加载体验 */
+}
+
+@font-face {
+    font-family: 'AlibabaPuHuiTi';
+    src: url('./AlibabaPuHuiTi-3-65-Medium.ttf') format('truetype');
+    font-weight: 500; /* 对应 Medium / 中等粗细 */
+    font-style: normal;
+    font-display: swap;
+}

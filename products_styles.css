@@ -3,11 +3,12 @@
     --color-bg: #050d15;
     --color-border: rgba(255, 255, 255, 0.1);
     --color-blue: #41a5ff;
-    --cell-height: 260px;
+    --cell-height: 330px;;
 }
 
 body {
-    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+    /* 将阿里巴巴普惠体放在首位 */
+    font-family: 'AlibabaPuHuiTi', sans-serif;
     background-color: var(--color-bg);
     color: #ffffff;
     margin: 0;
@@ -66,6 +67,48 @@ body {
 .back-btn.is-visible {
     opacity: 1;
     pointer-events: auto;
+}
+
+/* =========================================
+   🌟 鼠标跟随提示文字 (Cursor Hint)
+   ========================================= */
+.cursor-hint {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* 绝对不能阻挡鼠标点击事件 */
+    z-index: 9999;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    font-weight: 300;
+    font-family: 'AlibabaPuHuiTi', 'Noto Sans SC', sans-serif;
+    
+    /* 玻璃拟态质感 */
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px;
+    padding: 6px 16px;
+    white-space: nowrap;
+    
+    /* 初始隐藏 */
+    opacity: 0;
+    transition: opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* 在 Stage 1 显示 */
+.cursor-hint.is-visible {
+    opacity: 1;
+}
+
+/* 射线检测到悬停在晶圆上时的【高亮状态】 */
+.cursor-hint.is-hovering {
+    background: rgba(65, 165, 255, 0.2);
+    border-color: rgba(65, 165, 255, 0.6);
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(65, 165, 255, 0.5);
 }
 
 /* =========================================
@@ -209,6 +252,7 @@ body {
     width: 100%;
     height: 100%;
     position: relative;
+    font-family: 'AlibabaPuHuiTi', sans-serif;
 }
 
 /* 左侧大标题 */
@@ -218,7 +262,6 @@ body {
     left: 15%;
     transform: translateY(-50%);
     text-align: left;
-    font-family: 'Inter', 'Noto Sans SC', sans-serif;
 }
 
 /* 右侧参数列表 */
@@ -239,9 +282,8 @@ body {
 }
 
 .spec-row .lbl {
-    font-family: 'Space Mono', monospace;
     font-size: 1.4rem;
-    font-weight: 300;
+    font-weight: 400;
     color: #ffffff;
     width: 80px;
     /* 固定宽度，让右侧文字严格对齐 */
@@ -249,7 +291,6 @@ body {
 }
 
 .spec-row .val {
-    font-family: 'Inter', 'Noto Sans SC', sans-serif;
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.6);
     letter-spacing: 0.5px;
@@ -342,6 +383,7 @@ body {
     -webkit-backdrop-filter: blur(25px);
     position: relative;
     overflow: hidden;
+    border-top-left-radius: 24px;
 }
 
 .specs-w>div:not(.specs__title-w) {
@@ -358,10 +400,6 @@ body {
     transition: background 0.3s ease;
 }
 
-.specs-w>div:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-
 .specs__title-w {
     grid-column: span 2;
     border-right: 1px solid var(--color-border);
@@ -375,7 +413,6 @@ body {
     position: absolute;
     top: 1.5rem;
     left: 1.5rem;
-    font-family: monospace;
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.4);
     letter-spacing: 0.1em;
@@ -399,7 +436,6 @@ body {
 .specs__footer {
     position: absolute;
     bottom: 1.5rem;
-    font-family: monospace;
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.3);
 }
@@ -475,16 +511,14 @@ body {
 }
 
 .feature__label {
-    font-size: 1.5rem;
-    color: var(--color-blue);
-    font-weight: 300;
+    font-size: .5rem;
+    font-weight: 400;
     flex: 1;
 }
 
 .feature__desc {
     text-transform: uppercase;
     max-width: 36ch;
-    font-family: Azeretmono,Arial,sans-serif;
     font-size: .5rem;
     font-weight: 400;
 }

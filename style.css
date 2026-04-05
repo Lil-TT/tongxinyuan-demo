@@ -3,9 +3,9 @@ html {
   margin: 0;
   padding: 0;
   background: #020611;
-  /* 深邃宇宙底色 */
   color: white;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  /* 将阿里巴巴普惠体放在首位 */
+  font-family: 'AlibabaPuHuiTi', 'Helvetica Neue', Arial, sans-serif; 
 }
 
 /* 将初始的滚动锁定单独交给 body */

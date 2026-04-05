@@ -7,13 +7,14 @@
 }
 
 body {
-    background-color: #080b12;
-    /* 深沉的暗夜蓝背景 */
+    margin: 0;
+    padding: 0;
+    /* 将阿里巴巴普惠体放在首位 */
+    font-family: 'AlibabaPuHuiTi', sans-serif;
+    background-color: #050d15;
     color: #ffffff;
-    font-family: "Noto Sans SC", sans-serif;
     overflow-x: hidden;
 }
-
 /* 巨大背景标题 */
 .huge-title {
     font-size: 10vw;

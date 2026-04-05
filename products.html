@@ -11,11 +11,13 @@
         rel="stylesheet">
     <link rel="stylesheet" href="./products_styles.css">
     <link rel="stylesheet" href="./nav.css">
+    <link rel="stylesheet" href="./global.css">
 
 </head>
 
 <body>
     <a href="#" id="reset-btn" class="back-btn">返回选型</a>
+    <div id="cursor-hint" class="cursor-hint">点击晶圆探索</div>
 
     <div class="webgl-container" id="webgl-mount">
         <div class="wafer-glow"></div>
@@ -31,7 +33,7 @@
         <div class="projected-anchor wafer-hotspot" id="track-storage" data-target="storage">
             <div class="callout callout-tr param">
                 <div class="callout-text param-text text-left">
-                    <div class="text-2xl font-light mb-1 text-white">xMR薄膜晶圆</div>
+                    <div class="text-3xl font-light mb-1 text-white">xMR薄膜晶圆</div>
                     <span class="text-xs text-gray-400 mt-2 block">xMR各种结构和性能的晶圆。<br/>6 吋、8 吋、12 吋</span>
                 </div>
                 <svg class="guide-line tr-line" viewBox="0 0 450 150" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,7 +47,7 @@
         <div class="projected-anchor wafer-hotspot" id="track-sensor" data-target="sensor">
             <div class="callout callout-cl param left">
                 <div class="callout-text param-text text-right">
-                    <div class="text-2xl font-light mb-1 text-white">MEMS传感核心</div>
+                    <div class="text-3xl font-light mb-1 text-white">MEMS传感核心</div>
                     <span class="text-xs text-gray-400 mt-2 block">xMR桥路结构</span>
                 </div>
                 <svg class="guide-line cl-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -59,7 +61,7 @@
         <div class="projected-anchor wafer-hotspot" id="track-mems" data-target="sensor">
             <div class="callout callout-br param">
                 <div class="callout-text param-text text-left">
-                    <div class="text-2xl font-light mb-1 text-white">MEMS悬臂梁</div>
+                    <div class="text-3xl font-light mb-1 text-white">MEMS悬臂梁</div>
                     <span class="text-xs text-gray-400 mt-2 block">单材料/双材料悬臂梁基本结构<br />xMR-悬臂梁组合基础结构</span>
                 </div>
                 <svg class="guide-line br-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -117,11 +119,14 @@
                 <div class="section-w">
                     <h1 class="section__title">
                         <div class="u-lines-split">EUTRONSENSE</div>
-                        <div class="u-lines-split text-[#41a5ff]" style="-webkit-text-stroke: 0;">TMR Wafer,</div>
-                        <div class="u-lines-split">Specificity</div>
+                        <div class="u-lines-split text-[#41a5ff]" style="-webkit-text-stroke: 0;">TMR</div>
+                        <div class="u-lines-split">隧道磁电阻</div>
                     </h1>
                     <div class="section__desc">
-                        <p>Timeless design. Pristine sensing.<br>Perfect harmony between craftsmanship and materials.
+                        <p>湖北元臻微电独有的TMR技术已建立完整体系<br/>        
+                            拥有大动态高线性度、高灵敏度高精度特性<br/>
+                            MR达到136%-241%，均匀性≤1.5%<br/>
+                            可根据客户需求进行定制化制备</p>
                         </p>
                         <p class="text-xs font-mono text-gray-500 tracking-widest">[ Launching Phase 2026 ]</p>
                         <p class="price">Custom</p>
@@ -134,7 +139,7 @@
             <div id="grid-storage" class="wafer-data-section">
                 <div class="text-xs text-gray-500 mb-6 tracking-widest font-mono pl-4">[ STORAGE SPECS ]</div>
                 <div class="specs-w">
-                    <div class="specs__title-w" style="padding: 4rem 3rem !important;">
+                    <div class="specs__title-w" style="padding:8rem 3rem !important;">
                         <div class="text-[#41a5ff] text-4xl md:text-5xl font-light mb-2">TMR晶圆</div>
                         <div class="text-[#41a5ff] text-4xl md:text-5xl font-light">主要磁性性能</div>
                     </div>
@@ -184,7 +189,7 @@
                         <div class="specs__data">0.07<span class="specs__unit">%/K</span></div>
                     </div>
                     <div></div>
-                    <div style="grid-column: span 2; align-items: flex-start; padding-left: 3rem;">
+                    <div style="grid-column: span 2; align-items: flex-start; padding-left: 11.5rem;">
                         <div class="specs__header">[ 生产规格 ]</div>
                         <div class="specs__data">8<span class="specs__unit">吋、</span> 12<span
                                 class="specs__unit">吋</span></div>
@@ -193,9 +198,8 @@
             </div>
 
             <div id="grid-sensor" class="wafer-data-section">
-                <div class="text-xs text-gray-500 mb-6 tracking-widest font-mono pl-4">[ SENSOR SPECS ]</div>
                 <div class="specs-w">
-                    <div class="specs__title-w" style="padding: 4rem 3rem !important;">
+                    <div class="specs__title-w" style="padding: 8rem 3rem !important;">
                         <div class="text-[#41a5ff] text-4xl md:text-5xl font-light mb-2">TMR传感核心</div>
                         <div class="text-[#41a5ff] text-4xl md:text-5xl font-light">测试性能</div>
                     </div>
@@ -218,7 +222,7 @@
                         <div class="specs__data">0.94<span class="specs__unit">[Oe]</span></div>
                     </div>
                     <div>
-                        <div class="specs__header">[ 生产规格 ]</div>
+                        <div class="specs__header" >[ 生产规格 ]</div>
                         <div class="specs__data">6<span class="specs__unit">吋、</span> 8<span
                                 class="specs__unit">吋、</span> 12<span class="specs__unit">吋</span></div>
                     </div>
@@ -236,25 +240,20 @@
             <div class="c full">
                 <ul role="list" class="features-w">
                     <li class="features">
-                        <div class="feature__label">ANC</div>
-                        <div class="feature__desc">Active Noise Cancelling (ANC) adapts to your personal fit to keep you
-                            immersed in the music</div>
+                        <div class="feature__label">EUTRONSENSE</div>
+                        <div class="feature__desc">元臻微电独有的TMR技术</div>
+                    </li> 
+                    <li class="features">
+                        <div class="feature__label">LINEARIYT</div>
+                        <div class="feature__desc">拥有大动态高线性度</div>
                     </li>
                     <li class="features">
-                        <div class="feature__label">Materials</div>
-                        <div class="feature__desc">Lunar Silver Midnight Obsidian.</div>
+                        <div class="feature__label">SENSITIVITY</div>
+                        <div class="feature__desc">高灵敏度</div>
                     </li>
                     <li class="features">
-                        <div class="feature__label">Connectivity</div>
-                        <div class="feature__desc">USB-C universal charging</div>
-                    </li>
-                    <li class="features">
-                        <div class="feature__label">Battery Life</div>
-                        <div class="feature__desc">Up to 36 Hours of Listening Time<br>with Charging Case</div>
-                    </li>
-                    <li class="features">
-                        <div class="feature__label">Sound Quality</div>
-                        <div class="feature__desc">3x Larger Mics for Crisp, Clear Calls</div>
+                        <div class="feature__label">PRECISION</div>
+                        <div class="feature__desc">高精度</div>
                     </li>
                 </ul>
             </div>

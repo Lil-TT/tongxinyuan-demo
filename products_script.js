@@ -32,6 +32,7 @@ const introUi = document.getElementById('intro-ui');
 const stage2Ui = document.getElementById('stage2-ui');
 const mainWrapper = document.getElementById('main-wrapper');
 const backBtn = document.getElementById('reset-btn');
+const cursorHint = document.getElementById('cursor-hint');
 initGlobalNav(); // 初始化全局导航
 
 // ==========================================
@@ -325,9 +326,6 @@ document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
         currentState = STATES.STAGE_2_FOCUS;
         selectedWafer = e.currentTarget.getAttribute('data-target');
 
-        const activeModel = selectedWafer === 'storage' ? models.storage : models.sensor;
-        const inactiveModel = selectedWafer === 'storage' ? models.sensor : models.storage;
-
         // 🌟 1. 动态切换 Stage 2 的文案内容
         document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
         document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
@@ -337,20 +335,31 @@ document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
         // 2. 隐藏 Stage 1 选型 UI
         tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
 
-        // 3. 3D 模型镜头推演
-        tl.to(inactiveModel.position, { y: -20, duration: 1, ease: "power2.in" }, 0)
-            .to(activeModel.position, { x: config.stage2.x, y: config.stage2.y, z: config.stage2.z, duration: 1.5, ease: "power3.out" }, 0)
-            .to(activeModel.rotation, { x: config.stage2.rx, y: config.stage2.ry, z: config.stage2.rz, duration: 1.5 }, 0)
-            .to(activeModel.scale, { x: config.stage2.scale, y: config.stage2.scale, z: config.stage2.scale, duration: 1.5 }, 0);
+        // 🌟 3. 核心：根据当前选中的晶圆，获取两片晶圆专属的 stage2 目标坐标
+        const storageTarget = config.stage2[selectedWafer].storage;
+        const sensorTarget = config.stage2[selectedWafer].sensor;
 
-        // 🌟 4. 淡入 Stage 2 的特写文字 UI (跟随模型同时出现)
-        tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
+        // 🌟 4. 3D 模型镜头推演：各自飞向指定坐标，不再粗暴隐藏
+        // 控制 Storage 晶圆
+        tl.to(models.storage.position, { x: storageTarget.x, y: storageTarget.y, z: storageTarget.z, duration: 1.5, ease: "power3.out" }, 0)
+            .to(models.storage.rotation, { x: storageTarget.rx, y: storageTarget.ry, z: storageTarget.rz, duration: 1.5 }, 0)
+            .to(models.storage.scale, { x: storageTarget.scale, y: storageTarget.scale, z: storageTarget.scale, duration: 1.5 }, 0);
 
-        // 定时进入阶段 3 
-        // (为了让用户有时间阅读 Stage 2 的文字，可以稍微把 2100 延长到 3000)
+        // 控制 Sensor 晶圆
+        tl.to(models.sensor.position, { x: sensorTarget.x, y: sensorTarget.y, z: sensorTarget.z, duration: 1.5, ease: "power3.out" }, 0)
+            .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
+            .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
+
+        // 5. 淡入 Stage 2 的特写文字 UI
+        const stage2Ui = document.getElementById('stage2-ui');
+        if (stage2Ui) {
+            tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
+        }
+
+        // 6. 定时进入阶段 3 (可以调长一点时间让用户看清双晶圆的伴飞排版)
         stage2Timeout = setTimeout(() => {
             if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
-        }, 3000);
+        }, 10000);
     });
 });
 
@@ -404,7 +413,7 @@ window.addEventListener('click', () => {
     // 6. 定时进入阶段 3 (可以调长一点时间让用户看清双晶圆的伴飞排版)
     stage2Timeout = setTimeout(() => {
         if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
-    }, 60000);
+    }, 10000);
 });
 
 window.addEventListener('wheel', (e) => {
@@ -436,7 +445,7 @@ function goToStage3() {
 
     // 3. 呼出 Stage 3 的参数网格
     tl.to([mainWrapper, backBtn], {
-        opacity: 1, 
+        opacity: 1,
         duration: 1,
         pointerEvents: 'auto', // GSAP 会自动把两个元素的 pointer-events 改为 auto
         onStart: () => {
@@ -496,34 +505,45 @@ function animate() {
     if (currentState === STATES.STAGE_1_INTRO && models.storage && models.sensor) {
         raycaster.setFromCamera(raycastMouse, camera);
 
-        // 检测鼠标是否碰到内层晶圆模型
         const intersectsStorage = raycaster.intersectObject(models.storage.userData.inner, true);
         const intersectsSensor = raycaster.intersectObject(models.sensor.userData.inner, true);
 
-        // 默认目标缩放比例为 1
         let targetScaleStorage = 1.0;
         let targetScaleSensor = 1.0;
         let isHovering = false;
 
         if (intersectsStorage.length > 0) {
-            targetScaleStorage = 1.08; // 悬停时放大到 1.08 倍
+            targetScaleStorage = 1.08;
             isHovering = true;
         } else if (intersectsSensor.length > 0) {
-            targetScaleSensor = 1.08; // 悬停时放大到 1.08 倍
+            targetScaleSensor = 1.08;
             isHovering = true;
         }
 
-        // 改变鼠标指针样式
         document.body.style.cursor = isHovering ? 'pointer' : 'default';
 
-        // 使用 lerp(线性插值) 让晶圆如呼吸般平滑缩放 (0.1 是平滑度)
+        // 🌟 控制鼠标跟随提示的显示与高亮状态
+        if (cursorHint) {
+            cursorHint.classList.add('is-visible'); // 在 Stage 1 保持显示
+            if (isHovering) {
+                cursorHint.classList.add('is-hovering');
+                cursorHint.innerText = "点击进入特写";
+            } else {
+                cursorHint.classList.remove('is-hovering');
+                cursorHint.innerText = "点击晶圆探索";
+            }
+        }
+
         models.storage.userData.inner.scale.lerp(new THREE.Vector3(targetScaleStorage, targetScaleStorage, targetScaleStorage), 0.1);
         models.sensor.userData.inner.scale.lerp(new THREE.Vector3(targetScaleSensor, targetScaleSensor, targetScaleSensor), 0.1);
+
     } else if (models.storage && models.sensor) {
-        // 不在 Stage 1 时，确保内层缩放恢复为 1
         models.storage.userData.inner.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
         models.sensor.userData.inner.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
         document.body.style.cursor = 'default';
+
+        // 🌟 不在 Stage 1 时，彻底隐藏提示框
+        if (cursorHint) cursorHint.classList.remove('is-visible');
     }
 
     // ----------------------------------------------------
@@ -560,11 +580,20 @@ window.addEventListener('mousemove', (event) => {
     mouse.targetX = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.targetY = -(event.clientY / window.innerHeight) * 2 - 1;
 
-    // 🌟 3D 射线检测用 (实时坐标)
+    // 3D 射线检测用 (实时坐标)
     raycastMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     raycastMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-});
 
+    // 🌟 控制鼠标跟随提示的位置 (利用 GSAP 实现极度丝滑的微延迟跟随)
+    if (cursorHint) {
+        gsap.to(cursorHint, {
+            x: event.clientX + 15, // 偏移鼠标右侧 15px
+            y: event.clientY + 15, // 偏移鼠标下方 15px
+            duration: 0.15,
+            ease: "power2.out"
+        });
+    }
+});
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
