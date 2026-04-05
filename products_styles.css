@@ -1,0 +1,542 @@
+/* --- 🌟 其他基础样式保留 --- */
+:root {
+    --color-bg: #050d15;
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-blue: #41a5ff;
+    --cell-height: 260px;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+    background-color: var(--color-bg);
+    color: #ffffff;
+    margin: 0;
+    overflow: hidden;
+}
+
+.webgl-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wafer-glow {
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(65, 165, 255, 0.15) 0%, transparent 60%);
+    z-index: 0;
+}
+
+/* =========================================
+   🌟 返回上一层按钮 (Back Button)
+   ========================================= */
+.back-btn {
+    position: fixed;
+    left: 3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    z-index: 999;
+    /* 确保层级最高，不被 3D 画布挡住 */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 🌟 由 JS (GSAP) 动态添加的激活类 */
+.back-btn.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* =========================================
+   🌟 核心：3D 屏幕投影指示线体系 
+   ========================================= */
+#intro-ui {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    transition: opacity 0.5s ease;
+}
+
+.projected-anchor {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* 初始居中，将被 JS translate 接管 */
+    width: 0;
+    height: 0;
+    pointer-events: auto;
+    /* 让锚点区域可被点击交互 */
+    cursor: pointer;
+    /* 增加微小的防抖平滑，使得投影跟随极其顺滑 */
+    transition: transform 0.05s linear;
+}
+
+/* 悬浮轻微放大交互 */
+.projected-anchor:hover .param-text {
+    transform: scale(1.05);
+}
+
+/* 让 callout 不占据实际物理空间，允许内部发散 */
+.callout {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    overflow: visible;
+}
+
+.callout .guide-line {
+    position: absolute;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.callout .param-text {
+    position: absolute;
+    width: max-content;
+    transition: transform 0.3s ease;
+}
+
+/* 1. 右上角发散 (xMR薄膜晶圆) - SVG尖端圆在 (1.5, 100) */
+/* SVG偏移让尖端对准 (0,0) 原点 */
+.callout-tr .guide-line {
+    left: -260px;
+    top: -300px;
+    width: 450px;
+    height: 150px;
+}
+
+.callout-tr .param-text {
+    left: 200px;
+    top: -320px;
+    transform-origin: left center;
+}
+
+/* 2. 左中侧发散 (MEMS传感核心) - SVG尖端圆在 (279.5, 100) */
+.callout-cl .guide-line {
+    left: -500px;
+    top: 450px;
+    width: 300px;
+    height: 150px;
+}
+
+.callout-cl .param-text {
+    right: 520px;
+    top: 420px;
+    transform-origin: right center;
+}
+
+/* 3. 右下角发散 (MEMS悬臂梁) - SVG尖端圆在 (1.5, 100) */
+.callout-br .guide-line {
+    left: -350px;
+    top: 600px;
+    width: 300px;
+    height: 150px;
+}
+
+.callout-br .param-text {
+    left: -50px;
+    top: 555px;
+    transform-origin: left center;
+}
+
+/* 🌟 核心：0x0 大小的锚点容器，初始定在屏幕正中央 */
+.wafer-hotspot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 100;
+
+    /* 关键 1：允许鼠标点击和悬浮 (因为宽高为0，这里设置为 visible 允许子元素透传点击) */
+    pointer-events: visible;
+    cursor: pointer;
+
+    /* 关键 2：增加微小的防抖平滑，使得投影跟随 JS 计算时极其顺滑，不会有像素级抖动 */
+    transition: transform 0.05s linear;
+}
+
+/* =========================================
+   🌟 悬浮交互特效 (Hover Effects)
+   ========================================= */
+/* 当鼠标悬浮在晶圆热区时，让连线变得更亮、更清晰 */
+.wafer-hotspot:hover .guide-line path {
+    stroke: rgba(255, 255, 255, 0.9);
+    stroke-width: 1.5px;
+    transition: all 0.3s ease;
+}
+
+.wafer-hotspot:hover .guide-line circle {
+    r: 3;
+    /* 圆点稍微放大 */
+    transition: all 0.3s ease;
+}
+
+/* 当鼠标悬浮时，让文字产生发光效果 */
+.wafer-hotspot:hover .param-text {
+    text-shadow: 0 0 15px rgba(65, 165, 255, 0.6);
+    transition: text-shadow 0.3s ease;
+}
+
+/* =========================================
+   🌟 Stage 2 聚焦特写 UI 样式
+   ========================================= */
+.stage2-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* 左侧大标题 */
+.stage2-title-left {
+    position: absolute;
+    top: 50%;
+    left: 15%;
+    transform: translateY(-50%);
+    text-align: left;
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+}
+
+/* 右侧参数列表 */
+.stage2-specs-right {
+    position: absolute;
+    top: 50%;
+    right: 15%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    /* 行间距 */
+}
+
+.spec-row {
+    display: flex;
+    align-items: center;
+}
+
+.spec-row .lbl {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: #ffffff;
+    width: 80px;
+    /* 固定宽度，让右侧文字严格对齐 */
+    letter-spacing: 1px;
+}
+
+.spec-row .val {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.5px;
+    padding-left: 20px;
+}
+
+/* --- 🌟 主内容滚动区 --- */
+#main-wrapper {
+    position: relative;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.s {
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100svh;
+    padding-top: 12rem;
+    padding-bottom: 12rem;
+    display: flex;
+    position: relative;
+}
+
+.s.is--hero {
+    min-height: 100vh;
+}
+
+.c-1 {
+    width: calc(100% - 20rem);
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    margin: 0 auto;
+}
+
+.section-w {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.u-lines-split {
+    font-size: clamp(3rem, 5vw, 4.5rem);
+    font-weight: 300;
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+.section__desc {
+    display: flex;
+    flex-flow: column;
+    align-self: flex-end;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    gap: 2rem;
+    max-width: 400px;
+}
+
+.price {
+    font-size: 3rem;
+    color: #fff;
+    font-weight: 300;
+}
+
+/* 参数网格 */
+.content-layout {
+    width: 60%;
+    margin-left: auto;
+    padding-right: 40px;
+    padding-bottom: 8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8rem;
+}
+
+.specs-w {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-top: 1px solid var(--color-border);
+    border-left: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    position: relative;
+    overflow: hidden;
+}
+
+.specs-w>div:not(.specs__title-w) {
+    height: var(--cell-height);
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    position: relative;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+    transition: background 0.3s ease;
+}
+
+.specs-w>div:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.specs__title-w {
+    grid-column: span 2;
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    position: relative;
+    z-index: 2;
+}
+
+/* 网格排版 */
+.specs__header {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.1em;
+}
+
+.specs__data {
+    font-size: clamp(3rem, 4vw, 5rem);
+    font-weight: 200;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.specs__unit {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 300;
+}
+
+.specs__footer {
+    position: absolute;
+    bottom: 1.5rem;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* 几何切割圆 */
+.grid__smallcircle {
+    width: var(--cell-height);
+    height: var(--cell-height);
+    z-index: 0;
+    pointer-events: none;
+    position: absolute !important;
+}
+
+.grid__bigcircle {
+    width: calc(var(--cell-height) * 2);
+    height: calc(var(--cell-height) * 2);
+    z-index: 0;
+    pointer-events: none;
+    position: absolute !important;
+}
+
+.anchor-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.anchor-bottom-right {
+    top: 100%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+}
+
+.anchor-bottom-left {
+    top: 100%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+}
+
+/* Features */
+.s.is--features {
+    padding: 8rem 0;
+}
+
+.c {
+    width: 100%;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+}
+
+.features-w {
+    flex-flow: column;
+    width: 100%;
+    margin-top: 40rem;
+    margin-bottom: 40rem;
+    padding-left: 20px;
+    padding-right: 20px;
+    display: flex;
+    gap: 7rem;
+}
+
+.features {
+    justify-content: space-between;
+    font-size: 1.4rem;
+    font-weight: 400;
+    display: flex;
+    padding-bottom: 3rem;
+}
+
+.feature__label {
+    font-size: 1.5rem;
+    color: var(--color-blue);
+    font-weight: 300;
+    flex: 1;
+}
+
+.feature__desc {
+    text-transform: uppercase;
+    max-width: 36ch;
+    font-family: Azeretmono,Arial,sans-serif;
+    font-size: .5rem;
+    font-weight: 400;
+}
+
+/* 返回按钮 */
+.back-btn {
+    position: fixed;
+    left: 3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.back-btn.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 移动端 */
+@media (max-width: 1024px) {
+    .content-layout {
+        width: 100%;
+        padding: 2rem;
+    }
+
+    .section-w {
+        flex-direction: column;
+        height: auto;
+        gap: 4rem;
+        align-items: center;
+        text-align: center;
+    }
+
+    .specs-w {
+        grid-template-columns: 1fr;
+    }
+
+    .back-btn {
+        display: none;
+    }
+}

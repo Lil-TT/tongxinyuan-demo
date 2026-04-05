@@ -6,298 +6,262 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TMR晶圆主要磁性性能 - 元臻微电</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./products_styles.css">
     <link rel="stylesheet" href="./nav.css">
-    
-    <style>
-        body {
-            font-family: 'Inter', 'Noto Sans SC', sans-serif;
-            background-color: #050d15; /* 统一主品牌深渊黑背景 */
-            overflow-x: hidden;
-            color: #ffffff;
-        }
 
-        .gradient-text {
-            background: #41a5ff; /* 统一品牌科技蓝 */
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .wafer-glow {
-            position: fixed; /* 改为fixed，滚动时背景发光不变 */
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(65, 165, 255, 0.15) 0%, transparent 70%);
-            top: 20%;
-            left: 30%; /* 🌟 移到左边填补空白 */
-            transform: translateX(-50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .wafer-image {
-            position: fixed; /* 改为fixed */
-            top: 25%;
-            left: 30%; /* 🌟 移到左边填补空白 */
-            transform: translateX(-50%) rotate(-15deg);
-            width: 500px;
-            height: 500px;
-            opacity: 0.5;
-            pointer-events: none;
-            z-index: 1;
-            filter: blur(1px) brightness(0.8);
-        }
-
-        .param-label {
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.75rem;
-            letter-spacing: 0.1em;
-        }
-
-        .param-value {
-            font-weight: 300;
-            letter-spacing: -0.02em;
-        }
-
-        .param-unit {
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 300;
-        }
-
-        .back-btn {
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            background: rgba(65, 165, 255, 0.15); /* 统一悬浮蓝 */
-            border-color: rgba(65, 165, 255, 0.5);
-            color: #ffffff;
-        }
-
-        /* 🌟 核心布局改造：右侧 62% 吸附 */
-        .content-layout {
-            position: relative;
-            z-index: 10;
-            width: 62%;
-            margin-top: 180px;
-            margin-left: auto;
-            margin-right: 0;
-            padding-bottom: 80px;
-        }
-
-        /* 移动端/小屏幕防崩兜底 */
-        @media (max-width: 1024px) {
-            .content-layout {
-                width: 90%;
-                margin-right: auto;
-                padding-right: 0;
-                margin-top: 120px;
-            }
-            .wafer-glow, .wafer-image { opacity: 0.2; left: 50%; }
-            .back-btn-container { display: none; }
-        }
-
-        /* 入场动画类 */
-        .animate-fade-in {
-            animation: fadeIn 0.8s ease-out forwards;
-            opacity: 0;
-        }
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-        .stagger-1 { animation-delay: 0.1s; }
-        .stagger-2 { animation-delay: 0.2s; }
-        .stagger-3 { animation-delay: 0.3s; }
-        .stagger-4 { animation-delay: 0.4s; }
-        .stagger-5 { animation-delay: 0.5s; }
-        .stagger-6 { animation-delay: 0.6s; }
-        .stagger-7 { animation-delay: 0.7s; }
-    </style>
 </head>
 
-<body class="min-h-screen text-white relative">
+<body>
+    <a href="#" id="reset-btn" class="back-btn">返回选型</a>
 
-    <div class="wafer-glow"></div>
-    <div class="wafer-image">
-        <svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="200" cy="200" rx="180" ry="180" fill="url(#waferGradient)" stroke="rgba(255,255,255,0.1)" stroke-width="2" />
-            <ellipse cx="200" cy="200" rx="170" ry="170" stroke="rgba(255,255,255,0.05)" stroke-width="1" fill="none" />
-            <ellipse cx="200" cy="200" rx="160" ry="160" stroke="rgba(255,255,255,0.03)" stroke-width="1" fill="none" />
-            <defs>
-                <radialGradient id="waferGradient" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="rgba(65, 165, 255, 0.15)" />
-                    <stop offset="100%" stop-color="rgba(5, 13, 21, 0)" />
-                </radialGradient>
-            </defs>
-        </svg>
+    <div class="webgl-container" id="webgl-mount">
+        <div class="wafer-glow"></div>
     </div>
 
-    <div class="back-btn-container fixed left-12 top-1/2 -translate-y-1/2 z-50 animate-fade-in stagger-1">
-        <button onclick="history.back()" class="back-btn px-6 py-3 rounded-full text-sm text-gray-400 flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>返回上一层</span>
-        </button>
-    </div>
+    <svg id="line-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-40">
+        <line id="line-storage" stroke="rgba(255,255,255,0.4)" stroke-width="1" opacity="0"></line>
+        <line id="line-sensor" stroke="rgba(255,255,255,0.4)" stroke-width="1" opacity="0"></line>
+    </svg>
 
-    <main class="content-layout">
-
-        <div class="space-y">
-
-            <div class="glass-card p-10 text-left animate-fade-in stagger-2 hover:bg-white/5 transition-colors">
-                <div class="text-4xl md:text-5xl font-bold mb-2 text-white leading-tight">TMR晶圆</div>
-                <div class="text-4xl md:text-5xl font-bold gradient-text">主要磁性性能</div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2">
-                <div class="glass-card p-8 animate-fade-in stagger-3 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ MR (TYP) ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">230</span>
-                        <span class="text-xl param-unit">%</span>
-                    </div>
-                    <div class="mt-2 text-xs text-gray-500 text-center">性能可调</div>
-                </div>
-
-                <div class="glass-card p-8 text-center animate-fade-in stagger-4 hover:bg-white/5 transition-colors">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 ">
-                <div class="glass-card p-8 animate-fade-in stagger-3 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ RA (存储类) (TYP) ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">1.5</span>
-                        <span class="text-xl param-unit">[Ω·sq]</span>
-                    </div>
-                    <div class="mt-2 text-xs text-gray-500 text-center">性能可调</div>
-                </div>
-
-                <div class="glass-card p-8 animate-fade-in stagger-4 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ RA (传感类) (TYP) ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">15K</span>
-                        <span class="text-xl param-unit">[Ω·sq]</span>
-                    </div>
-                    <div class="mt-2 text-xs text-gray-500 text-center">性能可调</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 ">
-                <div class="glass-card p-8 animate-fade-in stagger-5 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ Hc ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">0.14</span>
-                        <span class="text-xl param-unit">[Oe]</span>
-                    </div>
-                </div>
-
-                <div class="glass-card p-8 animate-fade-in stagger-5 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ He ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">0.83</span>
-                        <span class="text-xl param-unit">[Oe]</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 ">
-                <div class="glass-card p-8 animate-fade-in stagger-6 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ Hex ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">5124</span>
-                        <span class="text-xl param-unit">[Oe]</span>
-                    </div>
-                </div>
-
-                <div class="glass-card p-8 animate-fade-in stagger-6 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ Uniformity ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">1.47</span>
-                        <span class="text-xl param-unit">%</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 ">
-                <div class="glass-card p-8 animate-fade-in stagger-6 hover:bg-white/5 transition-colors">
-                    <div class="param-label mb-2">[ 温度系数 ]</div>
-                    <div class="flex items-baseline justify-center gap-2 py-8">
-                        <span class="text-5xl md:text-6xl param-value">0.07</span>
-                        <span class="text-xl param-unit">%/K</span>
-                    </div>
-                </div>
-
-                <div class="glass-card p-8 animate-fade-in stagger-6 hover:bg-white/5 transition-colors">
-                </div>
-            </div>
-
-            <div class="glass-card p-10 animate-fade-in stagger-7 hover:bg-white/5 transition-colors">
-                <div class="param-label mb-2">[ 生产规格 ]</div>
-                <div class="flex items-baseline justify-center gap-2 py-4">
-                    <span class="text-5xl md:text-6xl param-value">8</span>
-                    <span class="text-2xl text-gray-400 mx-2">吋 、</span>
-                    <span class="text-5xl md:text-6xl param-value">12</span>
-                    <span class="text-2xl text-gray-400 mx-2">吋</span>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <script type="module">
-        import { initGlobalNav } from './nav.js';
+    <div id="intro-ui" class="ui-layer" style="opacity: 1;">
         
-        // 自动将 Header 注入页面顶部
-        initGlobalNav();
+        <div class="projected-anchor wafer-hotspot" id="track-storage" data-target="storage">
+            <div class="callout callout-tr param">
+                <div class="callout-text param-text text-left">
+                    <div class="text-2xl font-light mb-1 text-white">xMR薄膜晶圆</div>
+                    <span class="text-xs text-gray-400 mt-2 block">xMR各种结构和性能的晶圆。<br/>6 吋、8 吋、12 吋</span>
+                </div>
+                <svg class="guide-line tr-line" viewBox="0 0 450 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="448" cy="1.5" r="2" fill="#fff" opacity="0.8" />
+                    <path d="M 448 1.5 H 99.8 C 75.1 1.5 52.2 14.5 39.6 35.7 L 1.5 100" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <circle cx="1.5" cy="100" r="2" fill="#fff" opacity="0.8" />
+                </svg>
+            </div>
+        </div>
 
-        // 原本视差晃动的效果保留
-        document.addEventListener('mousemove', (e) => {
-            const wafer = document.querySelector('.wafer-image');
-            const glow = document.querySelector('.wafer-glow');
+        <div class="projected-anchor wafer-hotspot" id="track-sensor" data-target="sensor">
+            <div class="callout callout-cl param left">
+                <div class="callout-text param-text text-right">
+                    <div class="text-2xl font-light mb-1 text-white">MEMS传感核心</div>
+                    <span class="text-xs text-gray-400 mt-2 block">xMR桥路结构</span>
+                </div>
+                <svg class="guide-line cl-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="2" cy="1.5" r="2" fill="#fff" opacity="0.8" />
+                    <path d="M 2 1.5 H 181.1 C 205.8 1.5 228.7 14.5 241.3 35.7 L 279.5 100" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <circle cx="279.5" cy="100" r="2" fill="#fff" opacity="0.8" />
+                </svg>
+            </div>
+        </div>
 
-            // 修正：由于改为 fixed 且定位在了左侧，晃动幅度微微减小以免出戏
-            const x = (window.innerWidth - e.pageX) / 80;
-            const y = (window.innerHeight - e.pageY) / 80;
+        <div class="projected-anchor wafer-hotspot" id="track-mems" data-target="sensor">
+            <div class="callout callout-br param">
+                <div class="callout-text param-text text-left">
+                    <div class="text-2xl font-light mb-1 text-white">MEMS悬臂梁</div>
+                    <span class="text-xs text-gray-400 mt-2 block">单材料/双材料悬臂梁基本结构<br />xMR-悬臂梁组合基础结构</span>
+                </div>
+                <svg class="guide-line br-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="279.5" cy="1.5" r="2" fill="#fff" opacity="0.8" />
+                    <path d="M1 100.5H181.159C205.859 100.5 228.731 87.4821 241.344 66.2448L279.5 2" stroke="white" stroke-width="0.5"/>
+                    <circle cx="1.5" cy="100" r="2" fill="#fff" opacity="0.8" />
+                </svg>
+            </div>
+        </div>
+    </div>
 
-            wafer.style.transform = `translateX(calc(-50% + ${x}px)) translateY(${y}px) rotate(-15deg)`;
-            glow.style.transform = `translateX(calc(-50% + ${x * 0.5}px)) translateY(${y * 0.5}px)`;
-        });
+    <div id="stage2-ui" class="ui-layer" style="opacity: 0; pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 45;">
+        
+        <div id="stage2-content-sensor" class="stage2-content" style="display: none;">
+            <div class="stage2-title-left">
+                <h1 class="text-6xl font-medium mb-4 text-white tracking-widest">xMR</h1>
+                <h2 class="text-5xl font-light text-gray-300 tracking-widest">传感核心晶圆</h2>
+            </div>
+            <div class="stage2-specs-right">
+                <div class="spec-row">
+                    <span class="lbl">TMR</span><span class="val">TMR+MEMS悬臂梁结构</span>
+                </div>
+                <div class="spec-row">
+                    <span class="lbl">AMR</span><span class="val">半桥、全桥结构</span>
+                </div>
+                <div class="spec-row">
+                    <span class="lbl">GMR</span><span class="val">半桥、全桥结构</span>
+                </div>
+            </div>
+        </div>
 
-        // 滚动卡片逐渐清晰的 Intersection Observer
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
+        <div id="stage2-content-storage" class="stage2-content" style="display: none;">
+            <div class="stage2-title-left">
+                <h1 class="text-6xl font-medium mb-4 text-white tracking-widest">xMR</h1>
+                <h2 class="text-5xl font-light text-gray-300 tracking-widest">薄膜晶圆</h2>
+            </div>
+            <div class="stage2-specs-right">
+                <div class="spec-row">
+                    <span class="lbl">TMR</span><span class="val">高精度多层结构</span>
+                </div>
+                <div class="spec-row">
+                    <span class="lbl">AMR</span><span class="val">定制化阻值薄膜</span>
+                </div>
+                <div class="spec-row">
+                    <span class="lbl">GMR</span><span class="val">超高稳定性薄膜</span>
+                </div>
+            </div>
+        </div>
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
+    </div>
 
-        document.querySelectorAll('.glass-card').forEach((el) => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(20px)';
-            el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out, background-color 0.3s';
-            observer.observe(el);
-        });
-    </script>
+    <div id="main-wrapper">
+        <section class="s is--hero">
+            <div class="c-1">
+                <div class="section-w">
+                    <h1 class="section__title">
+                        <div class="u-lines-split">EUTRONSENSE</div>
+                        <div class="u-lines-split text-[#41a5ff]" style="-webkit-text-stroke: 0;">TMR Wafer,</div>
+                        <div class="u-lines-split">Specificity</div>
+                    </h1>
+                    <div class="section__desc">
+                        <p>Timeless design. Pristine sensing.<br>Perfect harmony between craftsmanship and materials.
+                        </p>
+                        <p class="text-xs font-mono text-gray-500 tracking-widest">[ Launching Phase 2026 ]</p>
+                        <p class="price">Custom</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <main class="content-layout">
+            <div id="grid-storage" class="wafer-data-section">
+                <div class="text-xs text-gray-500 mb-6 tracking-widest font-mono pl-4">[ STORAGE SPECS ]</div>
+                <div class="specs-w">
+                    <div class="specs__title-w" style="padding: 4rem 3rem !important;">
+                        <div class="text-[#41a5ff] text-4xl md:text-5xl font-light mb-2">TMR晶圆</div>
+                        <div class="text-[#41a5ff] text-4xl md:text-5xl font-light">主要磁性性能</div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ MR (TYP) ]</div>
+                        <div class="specs__data">230<span class="specs__unit">%</span></div>
+                        <div class="specs__footer">性能可调</div>
+                    </div>
+                    <div>
+                        <svg class="grid__smallcircle anchor-center" viewBox="0 0 500 500" fill="none">
+                            <circle cx="250" cy="250" r="249.5" stroke="white" stroke-opacity="0.1" stroke-width="0.5">
+                            </circle>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ RA (存储类) (TYP) ]</div>
+                        <div class="specs__data">1.5<span class="specs__unit">[Ω·sq]</span></div>
+                        <div class="specs__footer">性能可调</div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ RA (传感类) (TYP) ]</div>
+                        <div class="specs__data">15K<span class="specs__unit">[Ω·sq]</span></div>
+                        <div class="specs__footer">性能可调</div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ Hc ]</div>
+                        <div class="specs__data">0.14<span class="specs__unit">[Oe]</span></div>
+                        <svg class="grid__bigcircle anchor-bottom-right" fill="none" viewBox="0 0 500 500">
+                            <circle cx="250" cy="250" r="249.5" stroke="white" stroke-opacity="0.1" stroke-width="0.5">
+                            </circle>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ He ]</div>
+                        <div class="specs__data">0.83<span class="specs__unit">[Oe]</span></div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ Hex ]</div>
+                        <div class="specs__data">5124<span class="specs__unit">[Oe]</span></div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ Uniformity ]</div>
+                        <div class="specs__data">1.47<span class="specs__unit">%</span></div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ 温度系数 ]</div>
+                        <div class="specs__data">0.07<span class="specs__unit">%/K</span></div>
+                    </div>
+                    <div></div>
+                    <div style="grid-column: span 2; align-items: flex-start; padding-left: 3rem;">
+                        <div class="specs__header">[ 生产规格 ]</div>
+                        <div class="specs__data">8<span class="specs__unit">吋、</span> 12<span
+                                class="specs__unit">吋</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="grid-sensor" class="wafer-data-section">
+                <div class="text-xs text-gray-500 mb-6 tracking-widest font-mono pl-4">[ SENSOR SPECS ]</div>
+                <div class="specs-w">
+                    <div class="specs__title-w" style="padding: 4rem 3rem !important;">
+                        <div class="text-[#41a5ff] text-4xl md:text-5xl font-light mb-2">TMR传感核心</div>
+                        <div class="text-[#41a5ff] text-4xl md:text-5xl font-light">测试性能</div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ MR (TYP) ]</div>
+                        <div class="specs__data">180.16<span class="specs__unit">%</span></div>
+                    </div>
+                    <div>
+                        <svg class="grid__smallcircle anchor-center" viewBox="0 0 500 500" fill="none">
+                            <circle cx="250" cy="250" r="249.5" stroke="white" stroke-opacity="0.1" stroke-width="0.5">
+                            </circle>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ HC (TYP) ]</div>
+                        <div class="specs__data">0.17<span class="specs__unit">[Oe]</span></div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ HE (TYP) ]</div>
+                        <div class="specs__data">0.94<span class="specs__unit">[Oe]</span></div>
+                    </div>
+                    <div>
+                        <div class="specs__header">[ 生产规格 ]</div>
+                        <div class="specs__data">6<span class="specs__unit">吋、</span> 8<span
+                                class="specs__unit">吋、</span> 12<span class="specs__unit">吋</span></div>
+                    </div>
+                    <div>
+                        <svg class="grid__bigcircle anchor-bottom-left" fill="none" viewBox="0 0 500 500">
+                            <circle cx="250" cy="250" r="249.5" stroke="white" stroke-opacity="0.1" stroke-width="0.5">
+                            </circle>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <section class="s is--features">
+            <div class="c full">
+                <ul role="list" class="features-w">
+                    <li class="features">
+                        <div class="feature__label">ANC</div>
+                        <div class="feature__desc">Active Noise Cancelling (ANC) adapts to your personal fit to keep you
+                            immersed in the music</div>
+                    </li>
+                    <li class="features">
+                        <div class="feature__label">Materials</div>
+                        <div class="feature__desc">Lunar Silver Midnight Obsidian.</div>
+                    </li>
+                    <li class="features">
+                        <div class="feature__label">Connectivity</div>
+                        <div class="feature__desc">USB-C universal charging</div>
+                    </li>
+                    <li class="features">
+                        <div class="feature__label">Battery Life</div>
+                        <div class="feature__desc">Up to 36 Hours of Listening Time<br>with Charging Case</div>
+                    </li>
+                    <li class="features">
+                        <div class="feature__label">Sound Quality</div>
+                        <div class="feature__desc">3x Larger Mics for Crisp, Clear Calls</div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <script type="module" src="./products_script.js"></script>
 </body>
+
 </html>

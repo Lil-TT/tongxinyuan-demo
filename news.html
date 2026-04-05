@@ -1,31 +1,70 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>新闻资讯 - Aether 1.0</title>
-  <link rel="stylesheet" href="./nav.css">
-  <style>
-    /* 新闻页专属的一点点排版样式 */
-    body { background-color: #050d15; color: white; padding-top: 100px; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-  </style>
-</head>
-<body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新闻资讯 - 元臻微电</title>
+    <link rel="stylesheet" href="./nav.css" />
+    <link rel="stylesheet" href="./news_styles.css" />
+  </head>
+  <body>
+    <div class="huge-title">新闻资讯</div>
 
-  <div class="container">
-    <h1>最新新闻资讯</h1>
-    <p>这是用模块化生成的新页面，没有加载庞大的 3D 引擎。</p>
-  </div>
+    <main class="news-container">
+      
+      <section class="news-item">
+        <div class="news-content">
+          <div class="news-number">/ 01</div>
+          
+          <div data-copy-wrapper="true" data-color-init="#334155" data-color-accent="#eab308" data-color-final="#ffffff">
+            <h3 class="news-title">湖北元臻微电科技有限责任公司（董事长：张彪）荣获省政府专项津贴专家人选</h3>
+          </div>
+          
+          <div data-copy-wrapper="true" data-color-init="#334155" data-color-accent="#eab308" data-color-final="#9ca3af">
+            <p class="news-desc">根据省人力资源和社会保障厅《关于开展2025年度省有突出贡献中青年专家和享受省政府专项津贴专家推荐选拔工作的通知》(鄂人社函〔2025〕136号)要求,孝感市人力资源和社会保障局在全市范围内开展选拔推荐工作。经个人申报、单位审核、主管部门和县(市、区)推荐、专家评议等程序,拟推荐1位同志为省有突出贡献中青年专家,5位同志为享受省政府专项津贴专家人选,现予以公示。</p>
+          </div>
+          
+          <a href="#" class="read-more">查看详情 <span class="line"></span></a>
+        </div>
+        <div class="news-image ni-right">
+          <img src="/news-img-1.png" alt="News Image 1" />
+        </div>
+      </section>
 
-  <script type="module">
-    import { initGlobalNav } from './nav.js';
-    import gsap from 'gsap';
-    
-    // 注入全局导航
-    initGlobalNav();
-    
-    // 子页面的丝滑进场动画
-    gsap.fromTo('body', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' });
-  </script>
-</body>
+      <section class="news-item reverse">
+        <div class="news-content">
+          <div class="news-number">/ 02</div>
+          <div data-copy-wrapper="true" data-color-init="#334155" data-color-accent="#eab308" data-color-final="#ffffff">
+            <h3 class="news-title">现场直击 | 惊艳乍现 元臻微电首条量子材料生产线成功试产</h3>
+          </div>
+          <div data-copy-wrapper="true" data-color-init="#334155" data-color-accent="#eab308" data-color-final="#9ca3af">
+            <p class="news-desc">随着高科技的迅猛发展，对底层设备要求也随之攀升。湖北元臻微电科技有限责任公司洁净车间内，XMR生产线首次运行，高真空退火炉、磁控溅射等设备正在进行全流程试生产。严格的可靠性和产品的极高平铺面积等要求，不断考验着材料的极限性能，元臻微电突破量子黑科技技术壁垒...</p>
+          </div>
+          <a href="#" class="read-more">查看详情 <span class="line"></span></a>
+        </div>
+        <div class="news-image ni-left">
+          <img class="ni-left" src="/news-img-2.png" alt="News Image 2" />
+        </div>
+      </section>
+
+      <section class="news-item">
+        <div class="news-content">
+          <div class="news-number">/ 03</div>
+          <div data-copy-wrapper="true" data-color-init="#334155" data-color-accent="#eab308" data-color-final="#ffffff">
+            <h3 class="news-title">元臻微电首条量子材料生产线试产</h3>
+          </div>
+          <div data-copy-wrapper="true" data-color-init="#334155" data-color-accent="#eab308" data-color-final="#9ca3af">
+            <p class="news-desc">近日，湖北元臻微电科技有限责任公司洁净厂房内，第一条XMR生产线已架设完毕，高真空退火炉、磁控溅射等设备正在接受全流程试生产，确保9月中旬交付产品。“xMR技术是一种高性能量子磁传感技术，它就像感知物理世界的精密‘触角’，从工业自动化到智能驾驶，从医疗成像到量子计算，都离不开它。”该公司副总经理顾晓青介绍。</p>
+          </div>
+          <a href="#" class="read-more">查看详情 <span class="line"></span></a>
+        </div>
+        <div class="news-image ni-right">
+          <img src="/news-img-3.png" alt="News Image 3" />
+        </div>
+      </section>
+
+    </main>
+
+    <script type="module" src="/news_script.js"></script>
+  </body>
 </html>

@@ -35,16 +35,18 @@
 
         /* 背景中的盒子图片 (贴近左侧) */
         .bg-box-img {
-            position: absolute;
-            width: 700px;
-            height: 385px;
-            left: 178px;;
-            top: 163px;
-            /* 🌟 去掉 /contain，拆分写更清晰 */
-            background: url('./contact_box.png') no-repeat center;
-            background-size: 80%;
-            /* 也可以改成 150% 等你满意的数值 */
+            position: fixed;
+            left: 18%;;
+            top: 10%;
+            height: 500px;
+            width: 500px;
             z-index: 2;
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         /* =========================================
@@ -53,10 +55,9 @@
         .about-container {
             position: relative;
             /* 🌟 核心修改：最大宽度为设计图尺寸，屏幕缩小时占70% */
-            width: 70%;
-            max-width: 1228px;
+            max-width: 70%;
             /* 靠右贴合，保留顶部和底部的安全间距 */
-            margin: 192px 0 100px auto;
+            margin: 192px 40px 100px auto;
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(97, 116, 157, 0.3);
             backdrop-filter: blur(10px);
@@ -267,7 +268,9 @@
 <body class="about-page">
 
     <div class="bg-noise"></div>
-    <div class="bg-box-img"></div>
+    <div class="bg-box-img">
+        <img src="./contact_box.png" alt="">
+    </div>
 
     <div class="about-container">
 
