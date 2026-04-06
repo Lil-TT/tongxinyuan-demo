@@ -37,39 +37,6 @@ body {
 }
 
 /* =========================================
-   🌟 返回上一层按钮 (Back Button)
-   ========================================= */
-.back-btn {
-    position: fixed;
-    left: 3rem;
-    top: 50%;
-    transform: translateY(-50%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 0.75rem 2rem;
-    border-radius: 50px;
-    color: #fff;
-    text-decoration: none;
-    font-size: 0.9rem;
-    z-index: 999;
-    /* 确保层级最高，不被 3D 画布挡住 */
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.back-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-/* 🌟 由 JS (GSAP) 动态添加的激活类 */
-.back-btn.is-visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-/* =========================================
    🌟 鼠标跟随提示文字 (Cursor Hint)
    ========================================= */
 .cursor-hint {
@@ -79,20 +46,10 @@ body {
     pointer-events: none; /* 绝对不能阻挡鼠标点击事件 */
     z-index: 9999;
     color: rgba(255, 255, 255, 0.8);
-    font-size: 0.75rem;
+    font-size: 0.35rem;
     letter-spacing: 2px;
     font-weight: 300;
     font-family: 'AlibabaPuHuiTi', 'Noto Sans SC', sans-serif;
-    
-    /* 玻璃拟态质感 */
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 30px;
-    padding: 6px 16px;
-    white-space: nowrap;
-    
     /* 初始隐藏 */
     opacity: 0;
     transition: opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
@@ -101,14 +58,6 @@ body {
 /* 在 Stage 1 显示 */
 .cursor-hint.is-visible {
     opacity: 1;
-}
-
-/* 射线检测到悬停在晶圆上时的【高亮状态】 */
-.cursor-hint.is-hovering {
-    background: rgba(65, 165, 255, 0.2);
-    border-color: rgba(65, 165, 255, 0.6);
-    color: #ffffff;
-    text-shadow: 0 0 8px rgba(65, 165, 255, 0.5);
 }
 
 /* =========================================
@@ -259,7 +208,7 @@ body {
 .stage2-title-left {
     position: absolute;
     top: 50%;
-    left: 15%;
+    left: 9%;
     transform: translateY(-50%);
     text-align: left;
 }
@@ -268,7 +217,7 @@ body {
 .stage2-specs-right {
     position: absolute;
     top: 50%;
-    right: 15%;
+    right: 9%;
     transform: translateY(-50%);
     display: flex;
     flex-direction: column;
@@ -283,7 +232,7 @@ body {
 
 .spec-row .lbl {
     font-size: 1.4rem;
-    font-weight: 400;
+    font-weight: 300;
     color: #ffffff;
     width: 80px;
     /* 固定宽度，让右侧文字严格对齐 */
@@ -295,6 +244,7 @@ body {
     color: rgba(255, 255, 255, 0.6);
     letter-spacing: 0.5px;
     padding-left: 20px;
+    font-weight: 300;
 }
 
 /* --- 🌟 主内容滚动区 --- */
@@ -352,14 +302,20 @@ body {
     font-size: 1.2rem;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.7);
-    gap: 2rem;
+    gap: 1rem;
     max-width: 400px;
+    text-align: end;
+}
+
+.section__desc>p:nth-child(1){
+    font-size:14px;
+    font-weight: 300;
 }
 
 .price {
     font-size: 3rem;
     color: #fff;
-    font-weight: 300;
+    font-weight: 500;
 }
 
 /* 参数网格 */
@@ -416,6 +372,7 @@ body {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.4);
     letter-spacing: 0.1em;
+    font-weight: 200;
 }
 
 .specs__data {
@@ -438,6 +395,7 @@ body {
     bottom: 1.5rem;
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.3);
+    font-weight: 100;
 }
 
 /* 几何切割圆 */
@@ -526,8 +484,8 @@ body {
 /* 返回按钮 */
 .back-btn {
     position: fixed;
-    left: 3rem;
-    top: 50%;
+    left: 10rem;
+    top: 50rem;
     transform: translateY(-50%);
     border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 0.75rem 2rem;

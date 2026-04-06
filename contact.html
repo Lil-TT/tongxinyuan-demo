@@ -64,13 +64,15 @@
             pointer-events: none;
         }
 
+        /* wafer_box (左侧) */
         .bg-box-img img:nth-child(1) {
             position: absolute;
-            top: 0px;
+            top: -100px;
             left: 39px;
             width: 302px;
         }
 
+        /* wafer_box (右侧) */
         .bg-box-img img:nth-child(2) {
             position: absolute;
             top: 78px;
@@ -78,9 +80,10 @@
             width: 260px;
         }
 
+        /* wafer_box */
         .bg-box-img img:nth-child(3) {
             position: absolute;
-            top: 0;
+            top: 50px;
             left: 0;
         }
 
@@ -98,6 +101,7 @@
             position: relative;
             max-width: 70%;
             margin: 192px 40px 100px auto;
+            background: #00000066;
             border: 1px solid rgba(97, 116, 157, 0.3);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -110,7 +114,7 @@
             position: relative;
             padding-top: 90px;
             padding-bottom: 100px;
-            min-height: 740px;
+           min-height: 624px;
             z-index: 1;
         }
 
@@ -118,7 +122,7 @@
             position: absolute;
             width: 620px;
             height: 620px;
-            top: 50%;
+            top: 46%;
             left: 50%;
             transform: translate(-50%, -50%);
             border: 1px solid rgba(97, 116, 157, 0.3);
@@ -129,23 +133,28 @@
 
         .sec-1 h1 {
             width: 100%;
-            max-width: 935px;
+            max-width: 723px;
             font-weight: 400;
-            font-size: 48px;
+            font-size: 40px;
             line-height: 67px;
             color: #FFFFFF;
             margin: 0 0 40px 0;
+                margin-bottom: 60px;
         }
 
         .sec-1 p,
         .sec-2 p {
             width: 100%;
             max-width: 577px;
-            font-weight: 500;
-            font-size: 16px;
+            font-weight: 300;
+            font-size: 12px;
             line-height: 32px;
-            color: #E8E8E8;
+            color: #FFFFFF;
             margin: 0;
+        }
+
+        p {
+            font-weight: 300;
         }
 
         .section-block {
@@ -174,12 +183,18 @@
         }
 
         .sub-title {
-            font-weight: 500;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
+            font-weight: 400;
+            font-size: 12px;
             margin: 0 0 40px 0;
             text-transform: uppercase;
             letter-spacing: 2px;
+            color: #D0D0D1;
+        }
+
+        .sec-2 p {
+            font-weight: 400;
+            font-size: 12px;
+            color: #FFFFFF;
         }
 
         .sec-3 {
@@ -192,14 +207,15 @@
             align-items: center;
             gap: 16px;
             margin-bottom: 60px;
+            color: #D0D0D1;
         }
 
         .contact-title {
-            font-weight: 500;
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
             margin: 0;
             letter-spacing: 2px;
+            font-weight: 400;
+            color: #D0D0D1;
         }
 
         .contact-arrow {
@@ -215,7 +231,7 @@
 
         .locations-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 0.5fr 1fr;
             gap: 48px 80px;
         }
 
@@ -226,8 +242,15 @@
         }
 
         .location-card h4 {
-            font-weight: 500;
+            font-weight: 400;
             font-size: 18px;
+            color: #FFFFFF;
+            margin: 0;
+        }
+
+        .location-card h5 {
+            font-weight: 400;
+            font-size: 12px;
             color: #FFFFFF;
             margin: 0;
         }
@@ -286,39 +309,46 @@
             <h1>专业提供 xMR 晶圆和 xMR 传感核心晶圆的高科技企业</h1>
             <p>
                 我们致力于提升下游磁传感企业技术升级、产品迭代的企业。我们致力于驱动下游企业在新兴产业布局的企业。我们是一家面向未来多传感器融合、先进封装和异构技术的底层技术提供商。
-                <br><br>
+                <br>
                 从成立到现在的时间里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。从成立到现在的19个月里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。
             </p>
         </section>
 
         <section class="section-block sec-2">
-            <div class="sub-title">未来愿景 / VISION</div>
+            <div class="sub-title">
+                <span>[</span> <span style="padding:0 0.2rem;font-size: 12px;">未来愿景</span> <span>]</span>
+            </div>
             <p>元臻微电将成为国内一家面向未来，专业提供多传感器融合和异构的底层技术的高科技企业。</p>
         </section>
 
         <section class="section-block sec-3">
             <div class="contact-header">
-                <h3 class="contact-title">联系我们 / CONTACT</h3>
-                <svg class="contact-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+                <span>[</span> <span style="padding:0 0.2rem;font-size: 12px;">联系我们</span> <span>]</span>
             </div>
             <div class="locations-grid">
                 <div class="location-card">
-                    <h4>上海市，青浦区</h4>
-                    <p>徐泾镇汇龙路88号8楼</p>
+                    <h5>上海市，青浦区</h5>
+                    <h5>徐泾镇汇龙路88号8楼</h5>
                 </div>
                 <div class="location-card">
-                    <h4>联系人：刘女士</h4>
-                    <p>电话：182 8035 1027</p>
+                    <h5>湖北省，孝感市</h5>
+                    <h5>孝汉大道29号高创智造产业园西4厂房</h5>
                 </div>
                 <div class="location-card">
-                    <h4>湖北省，孝感市</h4>
-                    <p>孝汉大道29号高创智造产业园西4厂房</p>
+                    <h5>联系人：刘女士</h5>
+                    <h5>电话：182 8035 1027</h5>
                 </div>
                 <div class="location-card">
-                    <h4>联系人：韩先生</h4>
-                    <p>电话：136 0938 2791</p>
+                    <h5>联系人：韩先生</h5>
+                    <h5>电话：136 0938 2791</h5>
+                </div>
+                <div class="location-card">
+                    <h4></h4>
+                    <p></p>
+                </div>
+                <div class="location-card">
+                    <h4></h4>
+                    <p></p>
                 </div>
             </div>
         </section>
@@ -390,7 +420,7 @@
         waveSystem.material.uniforms.uIntensity.value = 1.2;
         waveSystem.wireframeMaterial.uniforms.uLightIntensity.value = 1.5;
         waveSystem.wireframeMaterial.uniforms.uIntensity.value = 1.2;
-        waveSystem.instance.position.set(0, 2, 5);
+        waveSystem.instance.position.set(0, 3, 12);
         let waveSystemProgress = 0.65;
         waveSystem.material.uniforms.uWaveTransition.value = waveSystemProgress;
         waveSystem.wireframeMaterial.uniforms.uWaveTransition.value = waveSystemProgress;

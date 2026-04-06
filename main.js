@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { initGlobalNav } from './nav.js';
 import Waves from './Waves.js'; // 🌟 引入你的波纹类
@@ -14,6 +15,8 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { Line2 } from 'three/addons/lines/Line2.js'; // 🌟 新增 Line2 引入
+import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'; // 🌟 新增 GPGPU 渲染器
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -41,8 +44,7 @@ camera3D.position.z = 18;
 
 // 全局变量：用于交互和动画
 const bgScrollObj = { offset: 0 };
-let meteorGroup;
-let meteorMeshes = [];
+let circlesSystem; // 🌟 替换流星雨的发光虚线系统
 let waveSystem;
 let globalClock = new THREE.Clock();
 
@@ -113,7 +115,6 @@ function initTrackingElements() {
 // Shader 背景特效专用变量
 let time_bg = 0;
 const mouseState = { currentX: 0, currentY: 0, targetX: 0, targetY: 0 };
-let sandParticles;
 
 // 🌟【新增核心状态】：资源是否加载完成的标识
 let isAssetsLoaded = false;
@@ -210,124 +211,388 @@ function createNoiseTexture() {
 }
 
 // 🌟 初始化波纹系统
-const noiseTex = createNoiseTexture(); 
+const noiseTex = createNoiseTexture();
 waveSystem = new Waves(noiseTex);
+waveSystem.instance.scale.set(1.5, 1.5, 1.5);
+waveSystem.instance.position.set(0, -8, 0);
+waveSystem.instance.rotation.set(
+  Math.PI / 2,  // X轴旋转 (点头)
+  0,  // Y轴旋转 (摇头)
+  0   // Z轴旋转 (侧倾)
+);
 waveSystem.instance.visible = false; // 先隐藏
 scene3D.add(waveSystem.instance);
 
-function createSandParticles() {
-  const geometry = new THREE.BufferGeometry();
-  const count = 2000;
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
+// ==========================================
+// 🌟 替换为 GPGPU Simplex Particles 系统
+// ==========================================
+const simplexChunk = `
+    vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    float mod289(float x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec4 permute(vec4 x) { return mod289(((x*34.0)+10.0)*x); }
+    float permute(float x) { return mod289(((x*34.0)+10.0)*x); }
+    vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+    float taylorInvSqrt(float r) { return 1.79284291400159 - 0.85373472095314 * r; }
+    vec4 grad4(float j, vec4 ip) {
+        const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);
+        vec4 p,s;
+        p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;
+        p.w = 1.5 - dot(abs(p.xyz), ones.xyz);
+        s = vec4(lessThan(p, vec4(0.0)));
+        p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www;
+        return p;
+    }
+    float simplexNoise4d(vec4 v) {
+        const vec4  C = vec4( 0.138196601125011, 0.276393202250021, 0.414589803375032, -0.447213595499958);
+        vec4 i  = floor(v + dot(v, vec4(0.309016994374947)) );
+        vec4 x0 = v -   i + dot(i, C.xxxx);
+        vec4 i0;
+        vec3 isX = step( x0.yzw, x0.xxx );
+        vec3 isYZ = step( x0.zww, x0.yyz );
+        i0.x = isX.x + isX.y + isX.z;
+        i0.yzw = 1.0 - isX;
+        i0.y += isYZ.x + isYZ.y;
+        i0.zw += 1.0 - isYZ.xy;
+        i0.z += isYZ.z;
+        i0.w += 1.0 - isYZ.z;
+        vec4 i3 = clamp( i0, 0.0, 1.0 );
+        vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );
+        vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );
+        vec4 x1 = x0 - i1 + C.xxxx;
+        vec4 x2 = x0 - i2 + C.yyyy;
+        vec4 x3 = x0 - i3 + C.zzzz;
+        vec4 x4 = x0 + C.wwww;
+        i = mod289(i);
+        float j0 = permute( permute( permute( permute(i.w) + i.z) + i.y) + i.x);
+        vec4 j1 = permute( permute( permute( permute ( i.w + vec4(i1.w, i2.w, i3.w, 1.0 )) + i.z + vec4(i1.z, i2.z, i3.z, 1.0 )) + i.y + vec4(i1.y, i2.y, i3.y, 1.0 )) + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));
+        vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;
+        vec4 p0 = grad4(j0,   ip);
+        vec4 p1 = grad4(j1.x, ip);
+        vec4 p2 = grad4(j1.y, ip);
+        vec4 p3 = grad4(j1.z, ip);
+        vec4 p4 = grad4(j1.w, ip);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w; p4 *= taylorInvSqrt(dot(p4,p4));
+        vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
+        vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);
+        m0 = m0 * m0; m1 = m1 * m1;
+        return 49.0 * ( dot(m0*m0, vec3( dot( p0, x0 ), dot( p1, x1 ), dot( p2, x2 ))) + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;
+    }
+`;
 
-  const sandColors = [
-    new THREE.Color(0xf4d03f), new THREE.Color(0xe9c46a),
-    new THREE.Color(0xd4a574), new THREE.Color(0xfaf3e0)
-  ];
+// 构建与 main.js 匹配的模拟运行上下文
+const glMock = {
+  renderer: { instance: renderer3D },
+  sizes: { width: window.innerWidth, height: window.innerHeight, pixelRatio: renderer3D.getPixelRatio() },
+  time: { delta: 16 },
+  audio: { frequencies: { synthLoop: { current: 0 } } }
+};
 
-  for (let i = 0; i < count; i++) {
-    const i3 = i * 3;
-    positions[i3] = (Math.random() - 0.5) * 200;
-    positions[i3 + 1] = (Math.random() - 0.5) * 200;
-    positions[i3 + 2] = (Math.random() - 0.5) * 100 - 30;
+class GPGPUParticles {
+  constructor() {
+    this.gl = glMock;
+    this.instance = new THREE.Group();
+    this.settings = { scale: 0.5 };
+    this.globalSpeed = 0.01;
 
-    const color = sandColors[Math.floor(Math.random() * sandColors.length)];
-    const colorVariation = 0.9 + Math.random() * 0.2;
-    colors[i3] = color.r * colorVariation;
-    colors[i3 + 1] = color.g * colorVariation;
-    colors[i3 + 2] = color.b * colorVariation;
-    sizes[i] = 0.5 + Math.random() * 1.5;
+    this.baseGeometry = {};
+    this.baseGeometry.instance = new THREE.TorusGeometry(12, this.settings.scale, 64, 10); // 放大尺寸以匹配深空背景
+    this.baseGeometry.count = this.baseGeometry.instance.attributes.position.count;
+
+    this.gpgpu = {};
+    this.gpgpu.size = Math.ceil(Math.sqrt(this.baseGeometry.count));
+    this.gpgpu.computation = new GPUComputationRenderer(this.gpgpu.size, this.gpgpu.size, this.gl.renderer.instance);
+    this.baseParticlesTexture = this.gpgpu.computation.createTexture();
+
+    for (let i = 0; i < this.baseGeometry.count; i++) {
+      this.baseParticlesTexture.image.data[i * 4 + 0] = this.baseGeometry.instance.attributes.position.array[i * 3 + 0] + (2 * Math.random() - 1) * this.settings.scale;
+      this.baseParticlesTexture.image.data[i * 4 + 1] = this.baseGeometry.instance.attributes.position.array[i * 3 + 1] + (2 * Math.random() - 1) * this.settings.scale;
+      this.baseParticlesTexture.image.data[i * 4 + 2] = this.baseGeometry.instance.attributes.position.array[i * 3 + 2] + (2 * Math.random() - 1) * this.settings.scale;
+      this.baseParticlesTexture.image.data[i * 4 + 3] = Math.random();
+    }
+
+    this.shader = `
+            ${simplexChunk}
+            uniform float uTime;
+            uniform float uTransition;
+            uniform float uDeltaTime;
+            uniform float uFrequency;
+            uniform sampler2D uBasePositions;
+            const float FLOWFIELD_SIZE = .25;
+            const float FLOWFIELD_STRENGTH = 5.;
+
+            void main() {
+                vec2 uv = gl_FragCoord.xy / resolution.xy;
+                vec4 particleTexture = texture2D(uParticles, uv);
+                vec4 basePositionTexture = texture2D(uBasePositions, uv);
+
+                if (particleTexture.a >= 1.0) {
+                    particleTexture.a = fract(particleTexture.a);
+                    particleTexture.xyz = basePositionTexture.xyz;
+                } else {
+                    vec3 flowField = vec3(
+                        simplexNoise4d(vec4(particleTexture.xyz * FLOWFIELD_SIZE + 0.0, uTime * 0.25)),
+                        simplexNoise4d(vec4(particleTexture.xyz * FLOWFIELD_SIZE + 1.0, uTime * 0.25)),
+                        simplexNoise4d(vec4(particleTexture.xyz * FLOWFIELD_SIZE + 2.0, uTime * 0.25))
+                    );
+
+                    flowField = normalize(flowField);
+                    particleTexture.xyz += flowField * (FLOWFIELD_STRENGTH + (1.0 - uTransition) * 10.) * uDeltaTime;
+                    particleTexture.a += uDeltaTime;
+                }
+                gl_FragColor = mix(particleTexture, basePositionTexture, pow(uFrequency * 15., 3.0));
+            }
+        `;
+
+    this.gpgpu.particlesVariable = this.gpgpu.computation.addVariable('uParticles', this.shader, this.baseParticlesTexture);
+    this.gpgpu.computation.setVariableDependencies(this.gpgpu.particlesVariable, [this.gpgpu.particlesVariable]);
+    this.gpgpu.particlesVariable.material.uniforms.uTime = new THREE.Uniform(0.0);
+    this.gpgpu.particlesVariable.material.uniforms.uDeltaTime = new THREE.Uniform(0.0);
+    this.gpgpu.particlesVariable.material.uniforms.uBasePositions = new THREE.Uniform(this.baseParticlesTexture);
+    this.gpgpu.particlesVariable.material.uniforms.uTransition = new THREE.Uniform(0.0);
+    this.gpgpu.particlesVariable.material.uniforms.uFrequency = new THREE.Uniform(0.0);
+    this.gpgpu.computation.init();
+
+    this.particles = {};
+    this.particlesUvArray = new Float32Array(this.baseGeometry.count * 2);
+    this.randomArray = new Float32Array(this.baseGeometry.count);
+
+    for (let y = 0; y < this.gpgpu.size; y++) {
+      for (let x = 0; x < this.gpgpu.size; x++) {
+        const i = y * this.gpgpu.size + x;
+        const i2 = i * 2;
+        this.particlesUvArray[i2 + 0] = (x + 0.5) / this.gpgpu.size;
+        this.particlesUvArray[i2 + 1] = (y + 0.5) / this.gpgpu.size;
+        this.randomArray[i] = Math.random();
+      }
+    }
+
+    this.particles.geometry = new THREE.BufferGeometry();
+    this.particles.geometry.setDrawRange(0, this.baseGeometry.count);
+    this.particles.geometry.setAttribute('aParticlesUv', new THREE.BufferAttribute(this.particlesUvArray, 2));
+    this.particles.geometry.setAttribute('aRandom', new THREE.BufferAttribute(this.randomArray, 1));
+
+    this.particles.material = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        uSize: new THREE.Uniform(0.115),
+        uResolution: new THREE.Uniform(new THREE.Vector2(this.gl.sizes.width * this.gl.sizes.pixelRatio, this.gl.sizes.height * this.gl.sizes.pixelRatio)),
+        uParticlesTexture: new THREE.Uniform(null),
+        uProgress: new THREE.Uniform(1),
+        uTransition: new THREE.Uniform(0.0),
+        uCircleSize: new THREE.Uniform(0.025),
+        uBokeh: new THREE.Uniform(0.0),
+        uFocusDistance: new THREE.Uniform(7.5),
+        uFocusRange: new THREE.Uniform(0.25),
+        uCloseUpBokeh: new THREE.Uniform(0.0),
+        COLOR_HIGHLIGHT: new THREE.Uniform(new THREE.Color(0xb2e0ff)),
+      },
+      vertexShader: `
+                uniform vec2 uResolution;
+                uniform float uSize;
+                uniform sampler2D uParticlesTexture;
+                uniform float uProgress;
+                uniform float uTransition;
+                uniform float uFocusDistance;
+                uniform float uFocusRange;
+                uniform float uCloseUpBokeh;
+                attribute vec2 aParticlesUv;
+                attribute float aRandom;
+                
+                varying vec4 vColor;
+                varying vec2 vParticlesUv;
+                varying float vLifeSize;
+                varying float vDepth;
+
+                void main() {
+                    vec4 particle = texture2D(uParticlesTexture, aParticlesUv);
+                    particle.z += 15.0 * smoothstep(0.9, 1.0, aRandom) * smoothstep(0.0, 0.3, uProgress);
+                    vec4 modelPosition = modelMatrix * vec4(particle.xyz, 1.0);
+                    vec4 viewPosition = viewMatrix * modelPosition;
+                    vec4 projectedPosition = projectionMatrix * viewPosition;
+                    gl_Position = projectedPosition;
+
+                    float lifeIn = smoothstep(0.0, 0.1, particle.a);
+                    float lifeOut = 1.0 - smoothstep(0.9, 1.0, particle.a);
+                    float lifeSize = min(lifeIn, lifeOut) * smoothstep(0.2, 1.0, uTransition);
+                
+                    gl_PointSize = aRandom * lifeSize * uSize * uResolution.y;
+                    vColor = vec4(vec3(1.0), particle.a);
+                    vParticlesUv = aParticlesUv;
+                    vLifeSize = lifeSize;
+                    vDepth = pow(min(abs((uFocusDistance + viewPosition.z - uCloseUpBokeh * 5.0) * uFocusRange), 1.0), 2.0);
+                }
+            `,
+      fragmentShader: `
+                varying vec4 vColor;
+                varying vec2 vParticlesUv;
+                varying float vLifeSize;
+                varying float vDepth;
+                uniform sampler2D uParticlesTexture;
+                uniform float uCircleSize;
+                uniform float uBokeh;
+                uniform float uCloseUpBokeh;
+                uniform float uTransition;
+                uniform vec3 COLOR_HIGHLIGHT;
+
+                void main() {
+                    vec4 particle = texture2D(uParticlesTexture, vParticlesUv);
+                    float distanceToCenter = length(gl_PointCoord - 0.5);
+                    if(distanceToCenter > 0.5) discard;
+
+                    float mask = 1.0 - distance(distanceToCenter, 0.25 / 8.0) * 8.0;
+                    mask = smoothstep(1.0 - uCircleSize - pow(uBokeh, 2.0) * 8.0 * vDepth, 1.0, mask);
+                    vec4 color = vec4(COLOR_HIGHLIGHT, max(mask, 0.25 * step(distanceToCenter, 0.25 / 8.0)) * vLifeSize);
+                    color.a -= (pow(uBokeh, 0.5) * (0.75 + vDepth * 0.25));
+                    color.a = max(color.a, 0.0);
+
+                    gl_FragColor = color;
+                }
+            `,
+    });
+
+    this.particles.material.depthWrite = false;
+    this.mesh = new THREE.Points(this.particles.geometry, this.particles.material);
+    this.mesh.rotation.x = -Math.PI * 0.425;
+    this.mesh.position.set(0, 0, 0);
+    this.mesh.renderOrder = 2;
+    this.instance.add(this.mesh);
   }
 
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  triggerWave(_direction = 1, _duration = 4.1, _ease = 'power2.inOut', _animateStrength = true, _delay = 0) {
+    if (_direction === 1) {
+      gsap.fromTo(this.mesh.scale, { x: 0.1, y: 0.1, z: 0.1 }, { x: 1, y: 1, z: 1, delay: _delay, duration: _duration, ease: _ease });
+      gsap.fromTo(this.particles.material.uniforms.uTransition, { value: 0.0 }, { value: 1.0, delay: _delay, duration: _duration, ease: _ease });
+      if (_animateStrength) {
+        gsap.fromTo(this.gpgpu.particlesVariable.material.uniforms.uTransition, { value: 0.0 }, { value: 1.0, delay: _delay, duration: _duration, ease: _ease });
+      }
+    } else {
+      gsap.fromTo(this.mesh.scale, { x: 1, y: 1, z: 1 }, { x: 0.1, y: 0.1, z: 0.1, duration: 2.75, ease: 'expo.inOut' });
+      gsap.fromTo(this.particles.material.uniforms.uTransition, { value: 1.0 }, { value: 0, duration: 2.75, ease: 'expo.inOut' });
+      if (_animateStrength) {
+        gsap.fromTo(this.gpgpu.particlesVariable.material.uniforms.uTransition, { value: 1.0 }, { value: 0.0, duration: 2.75, ease: 'expo.inOut' });
+      }
+    }
+  }
 
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uMouseX: { value: 0 },
-      uMouseY: { value: 0 },
-      uPixelRatio: { value: renderer3D.getPixelRatio() }
-    },
-    fog: false,
-    vertexShader: `
-            attribute float size;
-            attribute vec3 color;
-            varying vec3 vColor;
-            uniform float uTime;
-            uniform float uMouseX;
-            uniform float uMouseY;
-            uniform float uPixelRatio;
-            
-            void main() {
-                vColor = color;
-                vec3 pos = position;
-                float distX = pos.x - uMouseX * 50.0;
-                float distY = pos.y - uMouseY * 50.0;
-                float dist = sqrt(distX * distX + distY * distY);
-                float influence = 1.0 - smoothstep(0.0, 40.0, dist);
-                float drift = sin(uTime * 0.5 + position.x * 0.1) * 0.5;
-                
-                pos.x += uMouseX * influence * 15.0 + drift;
-                pos.y += uMouseY * influence * 15.0;
-                
-                vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-                gl_PointSize = size * uPixelRatio * (50.0 / -mvPosition.z);
-                gl_Position = projectionMatrix * mvPosition;
-            }
-        `,
-    fragmentShader: `
-            varying vec3 vColor;
-            void main() {
-                vec2 center = gl_PointCoord - vec2(0.5);
-                float dist = length(center);
-                float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
-                alpha *= 0.7 + 0.3 * (1.0 - dist * 2.0);
-                if (alpha < 0.01) discard;
-                gl_FragColor = vec4(vColor, alpha * 0.6); 
-            }
-        `,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
-  });
+  resize() {
+    this.particles.material.uniforms.uResolution.value.set(this.gl.sizes.width * this.gl.sizes.pixelRatio, this.gl.sizes.height * this.gl.sizes.pixelRatio);
+  }
 
-  sandParticles = new THREE.Points(geometry, material);
-  return sandParticles;
+  update(deltaMs) {
+    this.gl.time.delta = deltaMs;
+    this.gpgpu.particlesVariable.material.uniforms.uTime.value += (this.gl.time.delta * 0.0125 - this.gl.audio.frequencies.synthLoop.current * this.gl.time.delta * 0.0005) * (0.25 + this.globalSpeed * 0.75);
+    this.gpgpu.particlesVariable.material.uniforms.uDeltaTime.value = this.gl.time.delta * 0.001 * (0.25 + this.globalSpeed * 0.75);
+    this.gpgpu.computation.compute();
+    this.particles.material.uniforms.uParticlesTexture.value = this.gpgpu.computation.getCurrentRenderTarget(this.gpgpu.particlesVariable).texture;
+    this.mesh.rotation.z += this.gl.time.delta * 0.00075 * this.globalSpeed;
+  }
 }
-particlesGroup.add(createSandParticles());
+
+let sandParticlesSystem = new GPGPUParticles();
+particlesGroup.add(sandParticlesSystem.instance);
+
+// 提前触发展开动画使其待命
+sandParticlesSystem.triggerWave(1, 3);
 
 // ==========================================
-// 1.5 背景流星雨系统 
+// 1.5 发光虚线特效系统 (替换原流星雨)
 // ==========================================
-meteorGroup = new THREE.Group();
-scene3D.add(meteorGroup);
+class Circles {
+  constructor() {
+    this.count = 6;
+    this.curve = new THREE.EllipseCurve(0, 0, 1, 1, 0, 4 * Math.PI, false, 0);
+    this.points = this.curve.getPoints(100);
+    this.setMaterial();
+    this.setInstances();
+  }
 
-const meteorCanvas = document.createElement('canvas');
-meteorCanvas.width = 512;
-meteorCanvas.height = 32;
-const meteorCtx = meteorCanvas.getContext('2d');
-const meteorGradient = meteorCtx.createLinearGradient(0, 16, 512, 16);
-meteorGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-meteorGradient.addColorStop(0.6, 'rgba(0, 80, 255, 0.1)');
-meteorGradient.addColorStop(0.9, 'rgba(65, 165, 255, 0.9)');
-meteorGradient.addColorStop(1, 'rgb(255, 229, 200)');
-meteorCtx.fillStyle = meteorGradient;
-meteorCtx.fillRect(0, 0, 512, 32);
-const meteorTexture = new THREE.CanvasTexture(meteorCanvas);
+  setInstances() {
+    this.instances = new THREE.Group();
+    for (let i = 0; i < this.count; i++) {
+      this.instances.add(new Line2(this.createGeometry(), this.material));
+    }
+    this.instances.children.forEach((_instance, _index) => {
+      _instance.computeLineDistances();
+      _instance.rotation.set((Math.random() * 2 - 1) * 0.1, 0, (Math.random() * 2 - 1) * 0.1 + Math.PI);
+      _instance.scale.set(1 + _index * 0.15, 1 + _index * 0.15, 1 + _index * 0.15);
+    });
+    // 🌟 将它放到深空背景中，与你的粒子层级 (z: -20) 保持一致
+    this.instances.rotation.set(THREE.MathUtils.degToRad(13) - Math.PI * 0.5, THREE.MathUtils.degToRad(15), THREE.MathUtils.degToRad(-32));
+    this.instances.position.set(0, 0, -10);
+    this.instances.scale.set(16.37, 12.62, 16.37);
+    this.instances.visible = false; // 初始隐藏，跟随 deepSpace 阶段一起出现
+  }
 
-const meteorGeo = new THREE.PlaneGeometry(15, 0.3);
-for (let i = 0; i < 6; i++) {
-  const meteorMat = new THREE.MeshBasicMaterial({
-    map: meteorTexture, transparent: true, opacity: 0,
-    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-  });
-  const mesh = new THREE.Mesh(meteorGeo, meteorMat);
-  meteorMeshes.push(mesh);
-  meteorGroup.add(mesh);
+  createGeometry() {
+    const geometry = new LineGeometry();
+    const positions = [];
+    this.points.forEach(point => { positions.push(point.x, point.y, 0); });
+    geometry.setPositions(positions);
+    const count = geometry.attributes.instanceStart.count;
+    const randomArray = new Float32Array(count);
+    const randomValue = Math.random() * 0.2;
+    for (let i = 0; i < count; i++) { randomArray[i] = randomValue; }
+    geometry.setAttribute('aRandom', new THREE.InstancedBufferAttribute(randomArray, 1));
+    return geometry;
+  }
+
+  setMaterial() {
+    this.material = new LineMaterial({
+      color: 0xffffff,
+      linewidth: 2,
+      dashed: true,
+      premultipliedAlpha: true,
+      transparent: true,
+      resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
+    });
+
+    this.uniforms = {
+      uOffset: new THREE.Uniform(0.35),
+      uDashSize: new THREE.Uniform(0.175),
+      uFadeSize: new THREE.Uniform(0.05),
+      uLineLength: new THREE.Uniform(this.curve.getLength()),
+      uTime: new THREE.Uniform(0),
+      COLOR_HIGHLIGHT: new THREE.Uniform(new THREE.Color(0xffffff)), // #0026ff
+      COLOR_DASH: new THREE.Uniform(new THREE.Color(0x0026ff)),
+    };
+
+    this.material.onBeforeCompile = (_shader) => {
+      _shader.uniforms.uOffset = this.uniforms.uOffset;
+      _shader.uniforms.uLineLength = this.uniforms.uLineLength;
+      _shader.uniforms.uDashSize = this.uniforms.uDashSize;
+      _shader.uniforms.uFadeSize = this.uniforms.uFadeSize;
+      _shader.uniforms.uTime = this.uniforms.uTime;
+      _shader.uniforms.COLOR_HIGHLIGHT = this.uniforms.COLOR_HIGHLIGHT;
+      _shader.uniforms.COLOR_DASH = this.uniforms.COLOR_DASH;
+
+      _shader.vertexShader = _shader.vertexShader.replace('#include <common>', `#include <common>\n attribute float aRandom;\n varying float vRandom;`);
+      _shader.vertexShader = _shader.vertexShader.replace('#include <fog_vertex>', `#include <fog_vertex>\n vRandom = aRandom;`);
+      _shader.fragmentShader = _shader.fragmentShader.replace('uniform float linewidth;', `varying float vRandom;\n uniform float linewidth;\n uniform float uOffset;\n uniform float uLineLength;\n uniform float uDashSize;\n uniform float uFadeSize;\n uniform float uTime;\n uniform vec3 COLOR_HIGHLIGHT;\n uniform vec3 COLOR_DASH;`);
+      _shader.fragmentShader = _shader.fragmentShader.replace(/if \( mod\( vLineDistance \+ dashOffset, dashSize \+ gapSize \) > dashSize \) discard;/g, `// custom shader logic`);
+
+      _shader.fragmentShader = _shader.fragmentShader.replace(
+        'gl_FragColor = vec4( diffuseColor.rgb, alpha );',
+        `
+          float offset = fract(uOffset - uTime + vRandom);
+          float dash = smoothstep(fract(0.0 + uFadeSize + uDashSize + offset), fract(0.0 + uDashSize + offset), vLineDistance / uLineLength) - smoothstep(fract(0.0 + uFadeSize + offset), fract(0.0 + offset), vLineDistance / uLineLength);
+          float highlight = pow(dash, 2.0);
+          float cutMask = 1.0 - distance(vLineDistance / uLineLength, 0.5) * 2.0;
+          gl_FragColor = vec4(COLOR_DASH + highlight * 0.25, dash * alpha * cutMask);
+        `
+      );
+    };
+  }
+
+  update(elapsedTime) {
+    this.uniforms.uTime.value = elapsedTime * 0.5;
+  }
 }
-meteorGroup.position.set(0, 0, -50);
+
+circlesSystem = new Circles();
+circlesSystem.instances.position.set(0, 0, 10);
+circlesSystem.instances.rotation.set(THREE.MathUtils.degToRad(13) - Math.PI * 0.5, THREE.MathUtils.degToRad(15), THREE.MathUtils.degToRad(-32));
+scene3D.add(circlesSystem.instances);
 
 // ==========================================
 // 2. 真实进度加载管理器 (True Progress Loader)
@@ -392,13 +657,18 @@ function enterMainScene() {
     .to(modelGroup.position, { y: 0, duration: 1.2, ease: "power3.in" }, 0.5)
     .addLabel("hitGround", 1.7)
     .add(() => {
-      const vid = document.getElementById('shockwaveVideo');
-      if (vid) {
-        vid.currentTime = 0;
-        vid.play().catch(err => console.warn("冲击波视频警告:", err));
+      // 🌟 1. 彻底移除视频，替换为触发 3D 波纹冲击波
+      if (waveSystem) {
+        waveSystem.instance.visible = true; // 确保波纹网格可见
+        waveSystem.triggerWave({
+          direction: 1,           // 1 表示向外扩散
+          duration: 5,          // 扩散持续时间
+          ease: 'power3.out',     // 爆发感极强的缓动函数
+          intensity: 1.2,         // 物理高度起伏强度
+          lightIntensity: 1.8     // 光环发光强度
+        });
       }
     }, "hitGround")
-    .to('#shockwaveVideo', { opacity: 1, duration: 0.2 }, "hitGround")
     .to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, "hitGround")
     .fromTo('.ui-stage-1',
       { opacity: 0, y: 30, filter: 'blur(10px)' },
@@ -407,23 +677,17 @@ function enterMainScene() {
     )
     .addLabel("openLid", "hitGround+=1.5")
     .to(caseLid.rotation, { x: lidInitialRot - Math.PI / 2, duration: 1.5, ease: "power2.out" }, "openLid")
-    .to('#shockwaveVideo', { opacity: 0, duration: 1 }, "openLid")
     .addLabel("deepSpace", "openLid+=1.0")
     .set(sphericalGridGroup, { visible: true }, "deepSpace")
     .set(particlesGroup, { visible: true }, "deepSpace")
+    .set(circlesSystem.instances, { visible: true }, "deepSpace") // 🌟 揭示发光虚线系统
     .add(() => {
       document.body.style.overflow = 'auto';
       document.documentElement.style.overflow = 'auto';
       ScrollTrigger.refresh();
-      setupDebugGUI();
+      // setupDebugGUI();
       initScrollTimeline();
-
-      // 启动定时流星生成器
-      function scheduleNextMeteor() {
-        const delay = THREE.MathUtils.randInt(8000, 15000);
-        setTimeout(() => { triggerShootingStar(); scheduleNextMeteor(); }, delay);
-      }
-      setTimeout(scheduleNextMeteor, 3000);
+      // (原有的 scheduleNextMeteor 被删除了)
     }, "deepSpace+=0.5");
 }
 
@@ -818,24 +1082,60 @@ function initScrollTimeline() {
   tl.set(waveSystem.wireframeMaterial.uniforms.uLightIntensity, { value: 1.5 }, "stage1");
   tl.set(waveSystem.wireframeMaterial.uniforms.uIntensity, { value: 1.2 }, "stage1");
 
-  // 让波纹从中心向外绽放，耗时 1.5 秒 (对应滚轮滚动的跨度)
-  tl.fromTo(waveSystem.material.uniforms.uWaveTransition,
-    { value: 0 },
-    {
-      value: 1,
-      duration: 1.5, 
-      ease: "power2.inOut",
-      onUpdate: function() {
-        // 🌟 核心技巧：在用户滚动时，实时将实心材质的进度同步给线框材质
-        const currentVal = waveSystem.material.uniforms.uWaveTransition.value;
-        waveSystem.wireframeMaterial.uniforms.uWaveTransition.value = currentVal;
-        
-        // 增加额外的激荡感
-        waveSystem.material.uniforms.uTime.value += Math.sin(currentVal * Math.PI) * 0.005;
-      }
-    },
-    "stage1+=0.2" // 在盒子微动 0.2 秒后开始爆发
-  );
+  // 🌟 取消了 uWaveTransition 动画，改为用 GSAP 直接控制 3D 网格坐标
+  // 配合盒子与晶圆的运动，让波纹海面产生下沉和微倾斜的联动视差
+  tl.to(waveSystem.instance.position, {
+    x: 0,     // 水平位置保持不变
+    y: -2.5,   // 海面随着滚轮缓缓下沉，给晶圆腾出视觉空间
+    z: 0,    // 微微向镜头推近
+    duration: 1.5,
+    ease: "power1.inOut"
+  }, "stage1");
+
+  tl.to(waveSystem.instance.rotation, {
+    x: -0.15, // 海面微微仰起
+    z: 0,     // 配合盒子的 z 轴微扭转，海面也做轻微侧倾
+    duration: 1.5,
+    ease: "power1.inOut"
+  }, "stage1");
+
+  tl.to(waveSystem.instance.scale, {
+    x: 2,   // 海面在下沉的同时稍微放大，增强视觉冲击力
+    y: 2,
+    z: 2,
+    duration: 1.5,
+    ease: "power1.inOut"
+  }, "stage1");
+
+  tl.to(sandParticlesSystem.instance.position, {
+    y: -7.5,   // 沙粒系统与海面保持同步下沉，增强整体感
+    z: 9.5,    // 微微向镜头推近，但比海面更近一点，制造层次感      
+    duration: 4,
+    ease: "power1.inOut"
+  }, "stage1");
+
+  tl.to(sandParticlesSystem.instance.rotation, {
+    x: -Math.PI / 4, // 沙粒系统微微仰起，与海面保持一致的倾斜角度
+    z: 0,   // 配合盒子和海面的 z 轴微扭转，沙粒系统也做轻微侧倾
+    duration: 4,
+    ease: "power1.inOut"
+  }, "stage1");
+
+
+  tl.to(waveSystem.instance.position, {
+    y: -7.5,   // 海面随着滚轮缓缓下沉，给晶圆腾出视觉空间
+    duration: 1.5,
+    ease: "power1.inOut"
+  }, "stage1+=1.5");
+
+  tl.to(waveSystem.instance.rotation, {
+    x: 0, // 海面微微仰起
+    z: 0,     // 配合盒子的 z 轴微扭转，海面也做轻微侧倾
+    duration: 1.5,
+    ease: "power1.inOut"
+  }, "stage1+=1.5");
+
+  tl.set(waveSystem.instance, { visible: false }, "stage1+=3");
 
   // 3. 晶圆预备上浮：时长从 1.7 降到 1.0
   tl.to(earbudLeft.position, { y: w1Initial.pos.y + 0.5, z: w1Initial.pos.z + 1, duration: 1.0, ease: "power1.inOut" }, "stage1");
@@ -999,9 +1299,28 @@ function initScrollTimeline() {
     }, "stage6+=0.8");
   tl.to(caseLid.rotation, { x: lidInitialRot, duration: 0.3, ease: "bounce.out" }, lidClosureTime);
 
+  // ==========================================
+  // 🌟 2. 核心修改：在盖子触底的瞬间触发爆发波纹
+  // ==========================================
+  // lidClosureTime 是动作开始，0.3秒的 duration 加上 bounce，真实触底大约在 +0.15s
+  const impactTime = "stage6"; 
+  tl.add(() => {
+    if (waveSystem) {
+      waveSystem.instance.visible = true; // 强制显示波浪
+      waveSystem.triggerWave({
+        direction: 1,
+        duration: 2.5,          // 爆发持续 2.5 秒
+        ease: 'power2.out',
+        intensity: 1.5,         // 强度稍大，彰显关盖的力度
+        lightIntensity: 2.0
+      });
+    }
+  }, impactTime);
+
   tl.fromTo(".ui-stage-1", { opacity: 0, filter: 'blur(10px)', scale: 1.1 }, { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 0.6, ease: "power2.out" }, "stage6+=1.2");
 
-  tl.addLabel("stage6_end", 11.8);
+  tl.to({}, { duration: 2.5 }, impactTime); 
+  tl.addLabel("stage6_end", "+=0"); // 标签自动贴合到撑长后的末尾
 
   function playCinematicLoop() {
     isAutoLooping = true;
@@ -1037,15 +1356,10 @@ function initScrollTimeline() {
 
     loopTl.to(modelGroup.position, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power3.in" }, 0)
       .to(modelGroup.rotation, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power3.in" }, 0);
+
+    // 盒子在 0.8s 开始往下砸，0.95s 砸到最低点 (0.8 + 0.15)
     loopTl.to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, 0.8);
 
-    loopTl.add(() => {
-      const vid = document.getElementById('shockwaveVideo');
-      if (vid) { vid.currentTime = 0; vid.play().catch(e => console.warn(e)); }
-    }, 0.65);
-
-    loopTl.to('#shockwaveVideo', { opacity: 1, duration: 0.2 }, 0.65)
-      .to('#shockwaveVideo', { opacity: 0, duration: 1.0 }, 0.9);
     loopTl.to(caseLid.rotation, { x: lidInitialRot - Math.PI / 2, duration: 1.2, ease: "power2.out" }, 0.9);
   }
 }
@@ -1095,6 +1409,10 @@ function animate() {
     waveSystem.update(delta);
   }
 
+  if (circlesSystem) {
+    circlesSystem.update(globalClock.getElapsedTime());
+  }
+
   const time = performance.now() * 0.0001;
 
   // ----------------------------------------------------
@@ -1102,8 +1420,8 @@ function animate() {
   // ----------------------------------------------------
   // 逻辑：鼠标往左下(-1, -1)，模型整体组就往右上(+, +)躲避。
   // 0.6 是偏移幅度，数字越大躲得越远，你可以自己调整手感
-  parallaxGroup.position.x = -mouseState.currentX * 0.6;
-  parallaxGroup.position.y = -mouseState.currentY * 0.6;
+  parallaxGroup.position.x = -mouseState.currentX * 0.2;
+  parallaxGroup.position.y = -mouseState.currentY * 0.1;
 
   // ----------------------------------------------------
   // 🌟 2. 晶圆微重力漂浮效果 (Micro-gravity Float)
@@ -1132,10 +1450,10 @@ function animate() {
     }
   });
 
-  if (sandParticles && sandParticles.material.uniforms) {
-    sandParticles.material.uniforms.uTime.value = time_bg;
-    sandParticles.material.uniforms.uMouseX.value = mouseState.currentX;
-    sandParticles.material.uniforms.uMouseY.value = mouseState.currentY;
+  // 🌟 驱动新的 GPGPU 粒子系统
+  if (typeof sandParticlesSystem !== 'undefined') {
+    // GPGPU 的计算强依赖毫秒(ms)，所以需要把 delta(秒) 乘 1000
+    sandParticlesSystem.update(delta * 1000);
   }
 
   if (typeof sphericalGridGroup !== 'undefined' && sphericalGridGroup) {
@@ -1153,40 +1471,22 @@ window.addEventListener('mousemove', (event) => {
   mouseState.targetY = -(event.clientY / window.innerHeight - 0.5) * 2;
 });
 
-function triggerShootingStar() {
-  if (meteorMeshes.length === 0) return;
-
-  const startX = -70; const endX = 80;
-  const groupBaseY = THREE.MathUtils.randFloat(5, 25);
-  const groupBaseDuration = THREE.MathUtils.randFloat(1.2, 1.8);
-  const groupAngle = THREE.MathUtils.randFloat(-0.2, 0.1);
-
-  meteorMeshes.forEach((mesh) => {
-    const offsetX = THREE.MathUtils.randFloat(-20, 10);
-    const offsetY = THREE.MathUtils.randFloat(-4, 4);
-    const individualDuration = groupBaseDuration + THREE.MathUtils.randFloat(-0.1, 0.2);
-
-    mesh.rotation.z = groupAngle;
-
-    const meteorTl = gsap.timeline();
-    meteorTl
-      .set(mesh.position, { x: startX + offsetX, y: groupBaseY + offsetY })
-      .set(mesh.material, { opacity: 0 })
-      .to(mesh.position, {
-        x: endX + offsetX, y: groupBaseY + offsetY - (individualDuration * 5),
-        duration: individualDuration, ease: "linear"
-      }, 0)
-      .to(mesh.material, { opacity: 1, duration: individualDuration * 0.2 }, 0)
-      .to(mesh.material, { opacity: 0, duration: individualDuration * 0.2 }, `-=${individualDuration * 0.2}`);
-  });
-}
-
 window.addEventListener('resize', () => {
   const w = window.innerWidth, h = window.innerHeight;
   renderer3D.setSize(w, h);
   camera3D.aspect = w / h;
   camera3D.updateProjectionMatrix();
   if (window.gridLineMat) window.gridLineMat.resolution.set(w, h);
+  if (circlesSystem) circlesSystem.material.resolution.set(w, h);
+
+  // 🌟 同步更新 GPGPU 尺寸与分辨率
+  if (typeof glMock !== 'undefined') {
+    glMock.sizes.width = w;
+    glMock.sizes.height = h;
+  }
+  if (typeof sandParticlesSystem !== 'undefined') {
+    sandParticlesSystem.resize();
+  }
 });
 
 // ==========================================

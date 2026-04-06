@@ -5,7 +5,7 @@ html {
   background: #020611;
   color: white;
   /* 将阿里巴巴普惠体放在首位 */
-  font-family: 'AlibabaPuHuiTi', 'Helvetica Neue', Arial, sans-serif; 
+  font-family: 'AlibabaPuHuiTi', Arial, sans-serif; 
 }
 
 /* 将初始的滚动锁定单独交给 body */
@@ -140,7 +140,6 @@ body {
   inset: 0;
   z-index: 51;
   pointer-events: none;
-  font-family: 'Space Mono', monospace;
 }
 
 .tagcloud--item {
@@ -212,7 +211,6 @@ header {
   right: 40px;
   display: flex;
   justify-content: space-between;
-  font-family: 'Space Mono', monospace;
   font-size: 12px;
 }
 
@@ -278,7 +276,6 @@ header {
 }
 
 .subtitle {
-  font-family: 'Space Mono', monospace;
   font-size: 0.85rem !important;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -357,7 +354,6 @@ header {
 }
 
 .matrix-title {
-  font-family: 'Space Mono', monospace;
   letter-spacing: 4px;
   font-size: 2rem;
   text-shadow: 0 0 20px rgba(65, 165, 255, 0.8);
@@ -453,7 +449,6 @@ header {
 .ui-stage-2 .param-text {
   position: relative;
   z-index: 2;
-  font-family: PingFang SC;
   font-weight: 500;
   font-style: Medium;
   font-size: 24px;
@@ -462,7 +457,6 @@ header {
 }
 
 .ui-stage-2 .param span {
-  font-family: PingFang SC;
   font-weight: 400;
   font-style: Regular;
   font-size: 14px;
@@ -515,16 +509,16 @@ header {
   text-align: left;
 }
 
-.stage3-title h1 {
-  font-size: 3.5rem;
+.stage3-title p:nth-child(1) {
+  font-size: 64px;
   /* 字号加大以突出 xMR */
   margin-bottom: 5px;
   font-weight: 500;
   letter-spacing: 2px;
 }
 
-.stage3-title h2 {
-  font-size: 2.2rem;
+.stage3-title p:nth-child(2) {
+  font-size: 64px;
   color: rgba(255, 255, 255, 0.85);
   font-weight: 400;
   letter-spacing: 1px;
@@ -684,7 +678,6 @@ header {
 /* 1. 统一字体：强制全场所有引线标注使用 Space Mono 字体，确保科技感规整 */
 .ui-layer [class*="param-text"],
 .ui-layer [class*="callout-text"] {
-  font-family: 'Space Mono', monospace;
   text-align: left;
   /* 强制左对齐，保持秩序感 */
   line-height: 1.2;
@@ -697,7 +690,7 @@ header {
   /* 增加字号以突出重点，从以前的 ~1.4rem 调大到 1.8rem */
   font-size: 1.8rem;
   /* 增加字重至 600 (Demi Bold)，确保文字清晰、 crisp */
-  font-weight: 600;
+  font-weight: 400;
   /* 使用纯白，达到最高亮度 */
   color: #ffffff;
   letter-spacing: 1px;
@@ -710,7 +703,7 @@ header {
   /* 稍微增加副标题字号，确保小字也能清晰阅读，调至 ~1.0rem */
   font-size: 1.0rem;
   /* 恢复正常字重，拉开层级 */
-  font-weight: 400;
+  font-weight: 300;
   /* 使用 80% 透明度的白，达到高级的浅灰色效果，降低视觉干扰 */
   color: rgba(255, 255, 255, 0.8);
 
