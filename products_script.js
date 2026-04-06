@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'; // 🌟 新增引入 HDR
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
-import GUI from 'lil-gui'; // 🌟 引入 lil-gui
 import { initGlobalNav } from './nav.js';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -20,23 +20,20 @@ let currentState = STATES.LOADING;
 let selectedWafer = null;
 let stage2Timeout = null;
 
-// 鼠标状态 (用于视差排斥)
 const mouse = { currentX: 0, currentY: 0, targetX: 0, targetY: 0 };
-// 🌟 新增：用于 3D 射线检测的变量
 const raycaster = new THREE.Raycaster();
 const raycastMouse = new THREE.Vector2(-9999, -9999);
 const clock = new THREE.Clock();
 
-// UI DOM 引用
 const introUi = document.getElementById('intro-ui');
 const stage2Ui = document.getElementById('stage2-ui');
 const mainWrapper = document.getElementById('main-wrapper');
 const backBtn = document.getElementById('reset-btn');
 const cursorHint = document.getElementById('cursor-hint');
-initGlobalNav(); // 初始化全局导航
+initGlobalNav(); 
 
 // ==========================================
-// 🌟 1. Three.js 基础环境
+// 🌟 1. Three.js 基础环境与影视级灯光
 // ==========================================
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -45,183 +42,98 @@ camera.position.set(0, 0, 15);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// 🌟 开启 sRGB 和电影级色调映射，配合 HDR 渲染最真实的金属光泽
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
 document.getElementById('webgl-mount').appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+// ----------------------------------------------------
+// 🌟 完全移植 main.js 的灯光系统
+// ----------------------------------------------------
+// 1. 环境光 - 提供基础照明，避免死黑
+const ambientLight = new THREE.AmbientLight(0x354766, 0.5);
 scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-dirLight.position.set(5, 5, 5);
-scene.add(dirLight);
+
+// 2. 左侧暖光（主光之一）
+const leftMainLight = new THREE.PointLight(0xebf6fc, 2);
+leftMainLight.position.set(-4, 2.5, 3);
+leftMainLight.castShadow = true;
+leftMainLight.shadow.mapSize.width = 1024;
+leftMainLight.shadow.mapSize.height = 1024;
+leftMainLight.shadow.bias = -0.0001;
+scene.add(leftMainLight);
+
+// 3. 右侧冷光（主光之二）
+const rightMainLight = new THREE.PointLight(0xebf6fc, 2);
+rightMainLight.position.set(4, 2.5, 3);
+rightMainLight.castShadow = true;
+rightMainLight.shadow.mapSize.width = 1024;
+rightMainLight.shadow.mapSize.height = 1024;
+rightMainLight.shadow.bias = -0.0001;
+scene.add(rightMainLight);
+
+// 4. 背光暖色（轮廓光） #ffaa55
+// const backRimLight = new THREE.PointLight(0xffaa55, 1);
+// backRimLight.position.set(0, 1.5, -5);
+// scene.add(backRimLight);
+
+// 5. 顶部补光
+const topFillLight = new THREE.PointLight(0x88aaff, 1.5);
+topFillLight.position.set(0, 5, 2);
+scene.add(topFillLight);
+
+// 6. 底部柔光
+const bottomFillLight = new THREE.PointLight(0x5588aa, 0.5);
+bottomFillLight.position.set(0, -3, 1);
+scene.add(bottomFillLight);
 
 // ==========================================
 // 🌟 2. 核心架构：包裹组 (解耦动画)
 // ==========================================
-// A. 视差包裹组：专门接收鼠标排斥效果
 const parallaxGroup = new THREE.Group();
 scene.add(parallaxGroup);
 
-// B. 模型存放组
 const gltfLoader = new GLTFLoader();
+const textureLoader = new THREE.TextureLoader();
+const hdrLoader = new HDRLoader().setDataType(THREE.FloatType);
+
 const models = { storage: null, sensor: null };
 
 const projectedPosition = new THREE.Vector3();
-let trackingPoints = []; // 声明为空数组，稍后在模型加载后填充
+let trackingPoints = []; 
 let isAssetsLoaded = false;
 
-// ==========================================
-// 🌟 2. 定义 GUI 控制参数 (Debug Config)
-// ==========================================
-// 这组数据是你通过面板调出来的“理想状态”，记录在这里
 const config = {
-    // 阶段 1 (初始全屏) 的理想位置
     stage1: {
-        "storage": {
-            "x": 2.4,
-            "y": 0.92,
-            "z": -7.8,
-            "rx": -0.703716754404113,
-            "ry": 0.314159265358979,
-            "rz": 1.06814150222053,
-            "scale": 0.361
-        },
-        "sensor": {
-            "x": 1.32,
-            "y": 1.16,
-            "z": 9.4,
-            "rx": -2.04831841014054,
-            "ry": 0.326725635973339,
-            "rz": 0.540353936417445,
-            "scale": 0.2856
-        }
+        "storage": { "x": 2.4, "y": 0.92, "z": -7.8, "rx": -0.703716754404113, "ry": 0.314159265358979, "rz": 1.06814150222053, "scale": 0.32 },
+        "sensor": { "x": 1.32, "y": 1.16, "z": 9.4, "rx": -2.04831841014054, "ry": 0.326725635973339, "rz": 0.540353936417445, "scale": 0.256 }
     },
-    // 阶段 2 (居中聚焦) 的理想位置
     stage2: {
         "storage": {
-            "storage": {
-                "x": -2.54,
-                "y": -6.22,
-                "z": -4.02,
-                "rx": -0.182212373908208,
-                "ry": 2.29336263712055,
-                "rz": 0.515221195188726,
-                "scale": 0.4335
-            },
-            "sensor": {
-                "x": 10,
-                "y": -10,
-                "z": 4.34,
-                "rx": -2.04831841014054,
-                "ry": 0.326725635973339,
-                "rz": 0.540353936417445,
-                "scale": 0.3262
-            }
+            "storage": { "x": -2.54, "y": -4.22, "z": -4.02, "rx": -0.182212373908208, "ry": 2.29336263712055, "rz": 0.515221195188726, "scale": 0.4 },
+            "sensor": { "x": 10, "y": -10, "z": 4.34, "rx": -2.04831841014054, "ry": 0.326725635973339, "rz": 0.540353936417445, "scale": 0.3262 }
         },
         "sensor": {
-            "storage": {
-                "x": -9.42,
-                "y": 7.06,
-                "z": 0.42,
-                "rx": -0.703716754404113,
-                "ry": 0.314159265358979,
-                "rz": 1.06814150222053,
-                "scale": 0.361
-            },
-            "sensor": {
-                "x": -2.04,
-                "y": 3.12,
-                "z": 5.58,
-                "rx": -2.1865484868985,
-                "ry": -3.141592653589793,
-                "rz": 0.747699051554371,
-                "scale": 0.4335
-            }
+            "storage": { "x": -9.42, "y": 7.06, "z": 0.42, "rx": -0.703716754404113, "ry": 0.314159265358979, "rz": 1.06814150222053, "scale": 0.361 },
+            "sensor": { "x": -2.04, "y": 3.12, "z": 5.58, "rx": -2.1865484868985, "ry": -3.141592653589793, "rz": 0.747699051554371, "scale": 0.4335 }
         }
     },
-    // 阶段 3 (展开参数) 的理想位置
     stage3: {
-        "storage": {
-            "x": -2.54,
-            "y": -6.22,
-            "z": -4.02,
-            "rx": -0.182212373908208,
-            "ry": 2.29336263712055,
-            "rz": 0.515221195188726,
-            "scale": 0.5335
-        },
-        "sensor": {
-            "x": -2.04,
-            "y": 3.12,
-            "z": 5.58,
-            "rx": -2.1865484868985,
-            "ry": -3.141592653589793,
-            "rz": 0.747699051554371,
-            "scale": 0.4335
-        }
+        "storage": { "x": -2.54, "y": -6.22, "z": -4.02, "rx": -0.182212373908208, "ry": 2.29336263712055, "rz": 0.515221195188726, "scale": 0.5335 },
+        "sensor": { "x": -2.04, "y": 3.12, "z": 5.58, "rx": -2.1865484868985, "ry": -3.141592653589793, "rz": 0.747699051554371, "scale": 0.4335 }
     }
 };
 
 // ==========================================
-// 🌟 3. 初始化 lil-gui 面板
+// 🌟 3. 加载模型与材质重构引擎
 // ==========================================
-function setupGUI() {
-    const gui = new GUI({ title: '晶圆位置调试器 (Debug)' });
-
-    // 如果不在第一阶段，提示用户返回，防止坐标冲突
-    gui.add({ msg: '请在 Stage 1 调试初始位置' }, 'msg').name('⚠️ 注意');
-
-    const folderStorage = gui.addFolder('Storage 晶圆 (Stage 1)');
-    folderStorage.add(config.stage1.storage, 'x', -10, 10).onChange(updateModelTransforms);
-    folderStorage.add(config.stage1.storage, 'y', -10, 10).onChange(updateModelTransforms);
-    folderStorage.add(config.stage1.storage, 'z', -10, 10).onChange(updateModelTransforms);
-    folderStorage.add(config.stage1.storage, 'rx', -Math.PI, Math.PI).name('rot X').onChange(updateModelTransforms);
-    folderStorage.add(config.stage1.storage, 'ry', -Math.PI, Math.PI).name('rot Y').onChange(updateModelTransforms);
-    folderStorage.add(config.stage1.storage, 'rz', -Math.PI, Math.PI).name('rot Z').onChange(updateModelTransforms);
-    folderStorage.add(config.stage1.storage, 'scale', 0.1, 3).onChange(updateModelTransforms);
-
-    const folderSensor = gui.addFolder('Sensor 晶圆 (Stage 1)');
-    folderSensor.add(config.stage1.sensor, 'x', -10, 10).onChange(updateModelTransforms);
-    folderSensor.add(config.stage1.sensor, 'y', -10, 10).onChange(updateModelTransforms);
-    folderSensor.add(config.stage1.sensor, 'z', -10, 10).onChange(updateModelTransforms);
-    folderSensor.add(config.stage1.sensor, 'rx', -Math.PI, Math.PI).name('rot X').onChange(updateModelTransforms);
-    folderSensor.add(config.stage1.sensor, 'ry', -Math.PI, Math.PI).name('rot Y').onChange(updateModelTransforms);
-    folderSensor.add(config.stage1.sensor, 'rz', -Math.PI, Math.PI).name('rot Z').onChange(updateModelTransforms);
-    folderSensor.add(config.stage1.sensor, 'scale', 0.1, 3).onChange(updateModelTransforms);
-
-    // 一键导出按钮：在控制台打印出调好的 JSON 坐标，方便你复制回代码
-    gui.add({
-        exportConfig: () => {
-            console.log("=== 当前调好的晶圆坐标 ===");
-            console.log(JSON.stringify(config.stage1, null, 2));
-            alert("已打印到浏览器 Console (F12)！");
-        }
-    }, 'exportConfig').name('📥 一键打印当前坐标');
-}
-
-// GUI 拖动时实时更新模型
-function updateModelTransforms() {
-    if (currentState !== STATES.STAGE_1_INTRO || !models.storage || !models.sensor) return;
-
-    // 应用 Storage
-    models.storage.position.set(config.stage1.storage.x, config.stage1.storage.y, config.stage1.storage.z);
-    models.storage.rotation.set(config.stage1.storage.rx, config.stage1.storage.ry, config.stage1.storage.rz);
-    models.storage.scale.setScalar(config.stage1.storage.scale);
-
-    // 应用 Sensor
-    models.sensor.position.set(config.stage1.sensor.x, config.stage1.sensor.y, config.stage1.sensor.z);
-    models.sensor.rotation.set(config.stage1.sensor.rx, config.stage1.sensor.ry, config.stage1.sensor.rz);
-    models.sensor.scale.setScalar(config.stage1.sensor.scale);
-}
-
-// ==========================================
-// 🌟 4. 加载模型与动画解耦 (替身模式)
-// ==========================================
-const STORAGE_MODEL_PATH = './box1.glb';
-const SENSOR_MODEL_PATH = './box1.glb';
+const STORAGE_MODEL_PATH = './box6.glb';
+const SENSOR_MODEL_PATH = './box6.glb';
 
 function extractWafer(gltf, targetName) {
-    const wrapper = new THREE.Group();     // 外层包裹组 (交给 GSAP 控制位移和宏观旋转)
-    const innerGroup = new THREE.Group();  // 内层组 (交给 requestAnimationFrame 控制微重力浮动)
+    const wrapper = new THREE.Group();     
+    const innerGroup = new THREE.Group();  
 
     const wLeft = targetName === 1 ? gltf.scene.getObjectByName('Waferleft') : null;
     const wRight = targetName === 2 ? gltf.scene.getObjectByName('Waferright') : null;
@@ -229,19 +141,178 @@ function extractWafer(gltf, targetName) {
     if (wRight) innerGroup.add(wRight);
 
     wrapper.add(innerGroup);
-    wrapper.userData.inner = innerGroup; // 存储内部组引用
+    wrapper.userData.inner = innerGroup; 
     return wrapper;
+}
+
+/**
+ * 贴图属性配置器
+ */
+function configureTexture(texture, repeatX = 1, repeatY = 1, offsetX = 0, offsetY = 0) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    texture.offset.set(offsetX, offsetY);
+    texture.rotation = 0;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
 }
 
 Promise.all([
     new Promise((res, rej) => gltfLoader.load(STORAGE_MODEL_PATH, res, undefined, rej)),
-    new Promise((res, rej) => gltfLoader.load(SENSOR_MODEL_PATH, res, undefined, rej))
-]).then(([gltf1, gltf2]) => {
+    new Promise((res, rej) => gltfLoader.load(SENSOR_MODEL_PATH, res, undefined, rej)),
+    new Promise((res) => hdrLoader.load("./studio_small_09_2k.hdr", res)),
+    new Promise((res) => textureLoader.load("./img/B1.png", res)),
+    new Promise((res) => textureLoader.load("./img/A1.png", res)),
+    new Promise((res) => textureLoader.load("./img/B1.png", res))
+]).then(([gltf1, gltf2, hdrTexture, texLeft, texRightTop, texRightBottom]) => {
 
-    models.storage = extractWafer(gltf1, 1);
+    // 🌟 A. HDR 环境贴图设置
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    const currentEnvMap = pmremGenerator.fromEquirectangular(hdrTexture).texture;
+    scene.environment = currentEnvMap;
+    pmremGenerator.dispose();
+
+    // 🌟 B. 贴图参数设置
+    configureTexture(texRightTop, 2, 2);
+    configureTexture(texRightBottom, 2, 2);
+    configureTexture(texLeft, 2, 2, 0, 1);
+
+    const createWaferMaterial = (texture) => {
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.repeat.set(1, 1);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        return new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            map: texture,
+            emissiveMap: texture,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.7,
+            transparent: true,
+            opacity: 1,
+            side: THREE.FrontSide,
+        });
+    };
+
+    const matRightFront = createWaferMaterial(texRightTop);
+
+    // 🌟 C. 提取并包裹模型
+    models.storage = extractWafer(gltf1, 1); // 提取 Waferleft
+    models.sensor = extractWafer(gltf2, 2);  // 提取 Waferright
+
+    // ==================================================
+    // 🌟 D. 应用专属 UV 重算与深度材质映射 (移植自 main.js)
+    // ==================================================
+    
+    // 1. Storage 晶圆 (对应 Waferleft)
+    models.storage.userData.inner.traverse((mesh) => {
+        if (mesh.isMesh) {
+            // UV 重新映射
+            const uvAttribute = mesh.geometry.attributes.uv;
+            if(uvAttribute) {
+                const uvArray = uvAttribute.array;
+                let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+
+                for (let i = 0; i < uvArray.length; i += 2) {
+                    minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+                    minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+                }
+
+                const rangeU = maxU - minU; const rangeV = maxV - minV;
+                for (let i = 0; i < uvArray.length; i += 2) {
+                    uvArray[i] = (uvArray[i] - minU) / rangeU;
+                    uvArray[i + 1] = (uvArray[i + 1] - minV) / rangeV;
+                }
+                uvAttribute.needsUpdate = true;
+            }
+
+            // 覆盖材质
+            mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x222222,
+                transparent: true,
+                emissive: 0x222222,
+                opacity: 1,
+                roughness: 0.5,
+                metalness: 0.5,
+                map: texLeft,
+                envMap: currentEnvMap,
+                envMapIntensity: 1.5,
+            });
+            mesh.castShadow = true; mesh.receiveShadow = true;
+        }
+    });
+
+    // 2. Sensor 晶圆 (对应 Waferright - 复杂的正反面判断)
+    models.sensor.userData.inner.traverse((mesh) => {
+        if (mesh.isMesh) {
+            // 世界坐标 XZ 投影转 UV
+            const geometry = mesh.geometry;
+            const positions = geometry.attributes.position.array;
+            const newUVs = new Float32Array((positions.length / 3) * 2);
+
+            for (let i = 0; i < positions.length / 3; i++) {
+                const x = positions[i * 3];
+                const z = positions[i * 3 + 2];
+                newUVs[i * 2] = (x + 2) / 4;
+                newUVs[i * 2 + 1] = (z + 2) / 4;
+            }
+            geometry.setAttribute("uv", new THREE.BufferAttribute(newUVs, 2));
+            geometry.attributes.uv.needsUpdate = true;
+
+            const name = mesh.name.toLowerCase();
+            
+            // 背面映射逻辑
+            if (name === "柱体026") {
+                const uvAttribute = mesh.geometry.attributes.uv;
+                const uvArray = uvAttribute.array;
+                let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+
+                for (let i = 0; i < uvArray.length; i += 2) {
+                    minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+                    minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+                }
+                for (let i = 0; i < uvArray.length; i += 2) {
+                    uvArray[i] = (uvArray[i] - minU) / (maxU - minU);
+                    uvArray[i + 1] = (uvArray[i + 1] - minV) / (maxV - minV);
+                }
+                uvAttribute.needsUpdate = true;
+
+                mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0x222222,
+                    transparent: true,
+                    emissive: 0x222222,
+                    opacity: 1,
+                    map: texLeft,
+                    envMap: currentEnvMap,
+                    envMapIntensity: 1.5,
+                });
+            }
+            
+            // 正面高亮映射逻辑
+            if (name === "柱体026_1") {
+                const uvAttribute = mesh.geometry.attributes.uv;
+                const uvArray = uvAttribute.array;
+                let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+
+                for (let i = 0; i < uvArray.length; i += 2) {
+                    minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+                    minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+                }
+                for (let i = 0; i < uvArray.length; i += 2) {
+                    uvArray[i] = (uvArray[i] - minU) / (maxU - minU);
+                    uvArray[i + 1] = (uvArray[i + 1] - minV) / (maxV - minV);
+                }
+                uvAttribute.needsUpdate = true;
+                
+                mesh.material = matRightFront;
+            }
+            mesh.castShadow = true; mesh.receiveShadow = true;
+        }
+    });
+
     parallaxGroup.add(models.storage);
-
-    models.sensor = extractWafer(gltf2, 2);
     parallaxGroup.add(models.sensor);
 
     // 🌟 初始化追踪点矩阵
@@ -249,17 +320,17 @@ Promise.all([
         {
             elementId: '#track-storage',
             meshRef: () => models.storage.userData.inner,
-            localPos: new THREE.Vector3(-1.0, 1.5, 0) // Storage 晶圆边缘锚点 (可微调)
+            localPos: new THREE.Vector3(-1.0, 1.5, 0)
         },
         {
             elementId: '#track-sensor',
             meshRef: () => models.sensor.userData.inner,
-            localPos: new THREE.Vector3(-1.5, 1.0, 0) // Sensor 晶圆边缘锚点 (可微调)
+            localPos: new THREE.Vector3(-1.5, 1.0, 0)
         },
         {
             elementId: '#track-mems',
             meshRef: () => models.sensor.userData.inner,
-            localPos: new THREE.Vector3(1.5, -2.0, 0) // Mems 悬臂梁边缘锚点 (可微调)
+            localPos: new THREE.Vector3(1.5, -2.0, 0)
         }
     ];
 
@@ -269,7 +340,6 @@ Promise.all([
 
     isAssetsLoaded = true;
 
-    setupGUI(); // 调试用
     resetToStage1();
 });
 
@@ -302,7 +372,6 @@ function resetToStage1() {
     window.scrollTo(0, 0);
 
     const tl = gsap.timeline();
-    // 🌟 增加隐藏 stage2Ui
     tl.to([mainWrapper, backBtn, stage2Ui], { opacity: 0, duration: 0.5, pointerEvents: 'none' })
         .to('.wafer-data-section', { display: 'none' }, 0);
 
@@ -318,7 +387,6 @@ function resetToStage1() {
     tl.add(buildGuideLineAnim('#intro-ui'), "-=0.2");
 }
 
-// ▶️ 监听用户点击：进入阶段 2 (拉近聚焦)
 document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
     hotspot.addEventListener('click', (e) => {
         if (currentState !== STATES.STAGE_1_INTRO) return;
@@ -326,37 +394,28 @@ document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
         currentState = STATES.STAGE_2_FOCUS;
         selectedWafer = e.currentTarget.getAttribute('data-target');
 
-        // 🌟 1. 动态切换 Stage 2 的文案内容
         document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
         document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
 
         const tl = gsap.timeline();
-
-        // 2. 隐藏 Stage 1 选型 UI
         tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
 
-        // 🌟 3. 核心：根据当前选中的晶圆，获取两片晶圆专属的 stage2 目标坐标
         const storageTarget = config.stage2[selectedWafer].storage;
         const sensorTarget = config.stage2[selectedWafer].sensor;
 
-        // 🌟 4. 3D 模型镜头推演：各自飞向指定坐标，不再粗暴隐藏
-        // 控制 Storage 晶圆
         tl.to(models.storage.position, { x: storageTarget.x, y: storageTarget.y, z: storageTarget.z, duration: 1.5, ease: "power3.out" }, 0)
             .to(models.storage.rotation, { x: storageTarget.rx, y: storageTarget.ry, z: storageTarget.rz, duration: 1.5 }, 0)
             .to(models.storage.scale, { x: storageTarget.scale, y: storageTarget.scale, z: storageTarget.scale, duration: 1.5 }, 0);
 
-        // 控制 Sensor 晶圆
         tl.to(models.sensor.position, { x: sensorTarget.x, y: sensorTarget.y, z: sensorTarget.z, duration: 1.5, ease: "power3.out" }, 0)
             .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
             .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
 
-        // 5. 淡入 Stage 2 的特写文字 UI
         const stage2Ui = document.getElementById('stage2-ui');
         if (stage2Ui) {
             tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
         }
 
-        // 6. 定时进入阶段 3 (可以调长一点时间让用户看清双晶圆的伴飞排版)
         stage2Timeout = setTimeout(() => {
             if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
         }, 10000);
@@ -369,47 +428,44 @@ window.addEventListener('click', () => {
     raycaster.setFromCamera(raycastMouse, camera);
     const intersectsStorage = raycaster.intersectObject(models.storage.userData.inner, true);
     const intersectsSensor = raycaster.intersectObject(models.sensor.userData.inner, true);
-
     // ==========================================
     // 🎯 【阶段 1】：点击进入特写 (Stage 2)
     // ==========================================
     if (currentState === STATES.STAGE_1_INTRO) {
-        let target = null;
-        if (intersectsStorage.length > 0) target = 'storage';
-        else if (intersectsSensor.length > 0) target = 'sensor';
+    let target = null;
+    if (intersectsStorage.length > 0) target = 'storage';
+    else if (intersectsSensor.length > 0) target = 'sensor';
 
-        if (!target) return; // 没点中就退出
+    if (!target) return; 
 
-        currentState = STATES.STAGE_2_FOCUS;
-        selectedWafer = target; 
+    currentState = STATES.STAGE_2_FOCUS;
+    selectedWafer = target; 
 
-        // 1. 动态切换 Stage 2 的文案内容
-        document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
-        document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
+    document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
+    document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
 
-        const tl = gsap.timeline();
-        tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
+    const tl = gsap.timeline();
+    tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
 
-        // 3D 镜头推演
-        const storageTarget = config.stage2[selectedWafer].storage;
-        const sensorTarget = config.stage2[selectedWafer].sensor;
+    const storageTarget = config.stage2[selectedWafer].storage;
+    const sensorTarget = config.stage2[selectedWafer].sensor;
 
-        tl.to(models.storage.position, { x: storageTarget.x, y: storageTarget.y, z: storageTarget.z, duration: 1.5, ease: "power3.out" }, 0)
-          .to(models.storage.rotation, { x: storageTarget.rx, y: storageTarget.ry, z: storageTarget.rz, duration: 1.5 }, 0)
-          .to(models.storage.scale, { x: storageTarget.scale, y: storageTarget.scale, z: storageTarget.scale, duration: 1.5 }, 0);
+    tl.to(models.storage.position, { x: storageTarget.x, y: storageTarget.y, z: storageTarget.z, duration: 1.5, ease: "power3.out" }, 0)
+        .to(models.storage.rotation, { x: storageTarget.rx, y: storageTarget.ry, z: storageTarget.rz, duration: 1.5 }, 0)
+        .to(models.storage.scale, { x: storageTarget.scale, y: storageTarget.scale, z: storageTarget.scale, duration: 1.5 }, 0);
 
-        tl.to(models.sensor.position, { x: sensorTarget.x, y: sensorTarget.y, z: sensorTarget.z, duration: 1.5, ease: "power3.out" }, 0)
-          .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
-          .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
+    tl.to(models.sensor.position, { x: sensorTarget.x, y: sensorTarget.y, z: sensorTarget.z, duration: 1.5, ease: "power3.out" }, 0)
+        .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
+        .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
 
-        const stage2Ui = document.getElementById('stage2-ui');
-        if (stage2Ui) {
-            tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
-        }
+    const stage2Ui = document.getElementById('stage2-ui');
+    if (stage2Ui) {
+        tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
+    }
 
-        stage2Timeout = setTimeout(() => {
-            if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
-        }, 10000);
+    stage2Timeout = setTimeout(() => {
+        if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
+    }, 10000);
     } 
     // ==========================================
     // 🎯 【阶段 2】：点击当前聚焦的晶圆进入参数 (Stage 3)
@@ -435,38 +491,46 @@ window.addEventListener('wheel', (e) => {
 
 function goToStage3() {
     currentState = STATES.STAGE_3_SPECS;
-    
     const activeModel = selectedWafer === 'storage' ? models.storage : models.sensor;
-    const inactiveModel = selectedWafer === 'storage' ? models.sensor : models.storage;
 
     document.getElementById(`grid-${selectedWafer}`).style.display = 'block';
 
     const targetConfig = config.stage3[selectedWafer];
     const tl = gsap.timeline();
 
-    // 1. 淡出 Stage 2 聚焦 UI
     tl.to(stage2Ui, { opacity: 0, duration: 0.5 }, 0);
 
-    // 🌟 2. 配角退场：让未选中的晶圆直接缩小并下沉，不再干扰画面
-    tl.to(inactiveModel.position, { y: -10, duration: 1.0, ease: "power2.in" }, 0)
-      .to(inactiveModel.scale, { x: 0, y: 0, z: 0, duration: 1.0 }, 0);
-
-    // 3. 主角登场：飞向 Stage 3 顶部的初始聚焦位置
     tl.to(activeModel.position, { x: targetConfig.x, y: targetConfig.y, z: targetConfig.z, duration: 1.5, ease: "power3.inOut" }, 0)
         .to(activeModel.rotation, { x: targetConfig.rx, y: targetConfig.ry, z: targetConfig.rz, duration: 1.5 }, 0)
         .to(activeModel.scale, { x: targetConfig.scale, y: targetConfig.scale, z: targetConfig.scale, duration: 1.5 }, 0);
 
-    // 4. 呼出 Stage 3 的参数网格
+    // 找到这段呼出 Stage 3 参数网格的代码
     tl.to([mainWrapper, backBtn], {
         opacity: 1,
         duration: 1,
-        pointerEvents: 'auto',
+        pointerEvents: 'auto', 
         onStart: () => {
-            document.body.style.overflow = 'auto'; // 恢复系统滚动
+            document.body.style.overflow = 'auto';
+        },
+        // 🌟 新增：在动画结束瞬间，强制浏览器重新计算渲染层（模拟 F12）
+        onComplete: () => {
+            const specsEl = document.querySelector('.specs-w');
+            if (specsEl) {
+                // 强制重排（已有）
+                void specsEl.offsetHeight;
+                
+                // 🌟 关键：临时修改 backdrop-filter 再恢复，强制重新合成
+                const beforeStyle = window.getComputedStyle(specsEl, '::before');
+                const originalFilter = beforeStyle.backdropFilter || 'blur(25px)';
+                specsEl.style.backdropFilter = 'blur(24.9px)';
+                requestAnimationFrame(() => {
+                    specsEl.style.backdropFilter = '';
+                });
+            }
         }
     }, "-=1");
 
-    // ==========================================
+// ==========================================
     // 🌟 5. 滚动视差：主角移向左侧，形成左右排版
     // ==========================================
     ScrollTrigger.getAll().forEach(t => t.kill()); // 清理旧的触发器
@@ -532,13 +596,11 @@ function animate() {
     requestAnimationFrame(animate);
     const time = clock.getElapsedTime();
 
-    // 1. 鼠标排斥视差
     mouse.currentX += (mouse.targetX - mouse.currentX) * 0.05;
     mouse.currentY += (mouse.targetY - mouse.currentY) * 0.05;
     parallaxGroup.position.x = -mouse.currentX * 0.5;
     parallaxGroup.position.y = -mouse.currentY * 0.5;
 
-    // 2. 微重力漂浮 (解耦控制内部)
     if (currentState === STATES.STAGE_1_INTRO || currentState === STATES.STAGE_2_FOCUS) {
         if (models.storage && models.storage.userData.inner) {
             models.storage.userData.inner.position.y = Math.sin(time * 1.5) * 0.1;
@@ -652,19 +714,13 @@ function animate() {
 animate();
 
 window.addEventListener('mousemove', (event) => {
-    // 视差排斥用 (0.05 缓动)
-    mouse.targetX = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.targetY = -(event.clientY / window.innerHeight) * 2 - 1;
-
-    // 3D 射线检测用 (实时坐标)
     raycastMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     raycastMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // 🌟 控制鼠标跟随提示的位置 (利用 GSAP 实现极度丝滑的微延迟跟随)
     if (cursorHint) {
         gsap.to(cursorHint, {
-            x: event.clientX + 15, // 偏移鼠标右侧 15px
-            y: event.clientY + 15, // 偏移鼠标下方 15px
+            x: event.clientX + 15,
+            y: event.clientY + 15,
             duration: 0.15,
             ease: "power2.out"
         });

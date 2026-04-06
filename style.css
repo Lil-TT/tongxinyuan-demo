@@ -509,8 +509,12 @@ header {
   text-align: left;
 }
 
+.stage3-title p {
+  margin: 0; 
+}
+
 .stage3-title p:nth-child(1) {
-  font-size: 64px;
+  font-size: 55px;
   /* 字号加大以突出 xMR */
   margin-bottom: 5px;
   font-weight: 500;
@@ -518,10 +522,11 @@ header {
 }
 
 .stage3-title p:nth-child(2) {
-  font-size: 64px;
+  font-size: 55px;
   color: rgba(255, 255, 255, 0.85);
   font-weight: 400;
   letter-spacing: 1px;
+  margin-bottom: 5px;
 }
 
 /* 2 & 3. 标注文字通用样式 */
@@ -626,19 +631,24 @@ header {
   text-align: left;
 }
 
-.stage4-title h1 {
-  font-size: 3.5rem;
+.stage4-title p {
+  margin: 0; 
+}
+
+.stage4-title p:nth-child(1) {
+  font-size: 55px;
+  /* 字号加大以突出 xMR */
   margin-bottom: 5px;
   font-weight: 500;
   letter-spacing: 2px;
 }
 
-.stage4-title h2 {
-  font-size: 2.2rem;
-  color: rgba(255, 255, 255, 0.6);
-  /* 颜色稍微压暗，凸显主次 */
+.stage4-title p:nth-child(2) {
+  font-size: 55px;
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 400;
   letter-spacing: 1px;
+  margin-bottom: 5px;
 }
 
 /* 2. 右上角标注 (8寸) */

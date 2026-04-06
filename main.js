@@ -122,37 +122,47 @@ let isAssetsLoaded = false;
 // ==========================================
 // 1.2 灯光系统 (影视级三点布光 + 氛围光)
 // ==========================================
-const ambientLight = new THREE.AmbientLight(0x606080, 0.85);
+// 1. 环境光 - 提供基础照明，避免死黑
+const ambientLight = new THREE.AmbientLight(0x354766, 0.5); // 💡 原调试代码设为0，这里给0.5保留基础暗部细节
 scene3D.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-directionalLight.position.set(3, 5, 2);
-directionalLight.castShadow = true;
-directionalLight.receiveShadow = false;
-directionalLight.shadow.mapSize.width = 1024;
-directionalLight.shadow.mapSize.height = 1024;
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = 10;
-directionalLight.shadow.camera.left = -5;
-directionalLight.shadow.camera.right = 5;
-directionalLight.shadow.camera.top = 5;
-directionalLight.shadow.camera.bottom = -5;
-scene3D.add(directionalLight);
+// 2. 左侧暖光（主光之一）- 营造温暖质感
+const leftMainLight = new THREE.PointLight(0xebf6fc, 2); // 💡 开启亮度
+leftMainLight.position.set(-4, 2.5, 3);
+leftMainLight.castShadow = true;
+leftMainLight.shadow.mapSize.width = 1024;
+leftMainLight.shadow.mapSize.height = 1024;
+leftMainLight.shadow.bias = -0.0001;
+scene3D.add(leftMainLight);
 
-const backLight = new THREE.PointLight(0xffaa66, 0.6);
-backLight.position.set(-2, 2, -3);
-scene3D.add(backLight);
+// 3. 右侧冷光（主光之二）- 营造科技冷感
+const rightMainLight = new THREE.PointLight(0xebf6fc, 2); // 💡 开启亮度
+rightMainLight.position.set(4, 2.5, 3);
+rightMainLight.castShadow = true;
+rightMainLight.shadow.mapSize.width = 1024;
+rightMainLight.shadow.mapSize.height = 1024;
+rightMainLight.shadow.bias = -0.0001;
+scene3D.add(rightMainLight);
 
-const fillLight = new THREE.PointLight(0x88aaff, 0.4);
-fillLight.position.set(1, 1.5, 2);
-scene3D.add(fillLight);
+// 4. 背光暖色（轮廓光）
+const backRimLight = new THREE.PointLight(0xffaa55, 1);
+backRimLight.position.set(0, 1.5, -5);
+scene3D.add(backRimLight);
 
-const rimLight = new THREE.PointLight(0x88ccff, 0.3);
-rimLight.position.set(0, -1, 0);
-scene3D.add(rimLight);
+// 5. 顶部补光
+const topFillLight = new THREE.PointLight(0x88aaff, 1.5);
+topFillLight.position.set(0, 5, 2);
+scene3D.add(topFillLight);
 
-const hemiLight = new THREE.HemisphereLight(0x8b9dc3, 0x3c4a5e, 0.45);
-scene3D.add(hemiLight);
+// 6. 底部柔光
+const bottomFillLight = new THREE.PointLight(0x5588aa, 0.5);
+bottomFillLight.position.set(0, -3, 1);
+scene3D.add(bottomFillLight);
+
+// 7. 动态跟随光源
+magicFollowLight = new THREE.PointLight(0xffaa88, 0); // 暂不开启，留作备用
+magicFollowLight.position.set(0, 2, 3);
+scene3D.add(magicFollowLight);
 
 // ==========================================
 // 镜头控制器 (OrbitControls)
@@ -698,52 +708,61 @@ const textureLoader = new THREE.TextureLoader(manager);
 const gltfLoader = new GLTFLoader(manager);
 const hdrLoader = new HDRLoader(manager).setDataType(THREE.FloatType);
 
-const loadHDR = new Promise(res => hdrLoader.load('./studio_small_09_2k.hdr', res));
-const loadLidTex = new Promise(res => textureLoader.load('./2.png', res));
-const loadWaferLeftTex = new Promise(res => textureLoader.load('./tex_left.png', res));
-const loadWaferRightTopTex = new Promise(res => textureLoader.load('./tex_right_top.png', res));
-const loadWaferRightBottomTex = new Promise(res => textureLoader.load('./tex_right_bottom.png', res));
-const loadModel = new Promise(res => gltfLoader.load('./box1.glb', res));
+// 🌟 1. 按新路径加载素材
+const loadHDR = new Promise((res) => hdrLoader.load("./studio_small_09_2k.hdr", res));
+const loadWaferLeftTex = new Promise((res) => textureLoader.load("./img/B1.png", res));
+const loadWaferRightTopTex = new Promise((res) => textureLoader.load("./img/A1.png", res));
+const loadWaferRightBottomTex = new Promise((res) => textureLoader.load("./img/B1.png", res));
+const loadLidTex = new Promise((res) => textureLoader.load("./img/4.png", res));
+const loadCaseBottomTex = new Promise((res) => textureLoader.load("./img/7.png", res));
+const loadWaferTex = new Promise((res) => textureLoader.load("./img/8.png", res));
+const loadModel = new Promise((res) => gltfLoader.load("./box6.glb", res)); // 载入 box6.glb
+
+/**
+ * 🌟 2. 配置纹理辅助函数
+ */
+function configureTexture(texture, repeatX = 1, repeatY = 1, offsetX = 0, offsetY = 0) {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.offset.set(offsetX, offsetY);
+  texture.rotation = 0;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+}
 
 Promise.all([
-  loadHDR, loadLidTex, loadWaferLeftTex, loadWaferRightTopTex, loadWaferRightBottomTex, loadModel
-]).then(([hdrTexture, lidTexture, texLeft, texRightTop, texRightBottom, gltf]) => {
-
+  loadHDR, loadLidTex, loadWaferLeftTex, loadWaferRightTopTex, loadWaferRightBottomTex, loadCaseBottomTex, loadWaferTex, loadModel
+]).then(([hdrTexture, lidTexture, texLeft, texRightTop, texRightBottom, caseBottomTex, texLoadWafer, gltf]) => {
+  
   const pmremGenerator = new THREE.PMREMGenerator(renderer3D);
   const currentEnvMap = pmremGenerator.fromEquirectangular(hdrTexture).texture;
   scene3D.environment = currentEnvMap;
   pmremGenerator.dispose();
 
-  // B. 配置贴图属性
-  lidTexture.wrapS = THREE.RepeatWrapping;
-  lidTexture.wrapT = THREE.RepeatWrapping;
-  lidTexture.repeat.set(1, 1);
-  lidTexture.colorSpace = THREE.SRGBColorSpace;
-
-  // ==================================================
-  // 🌟 C. 核心：封装材质流水线，批量制造 3 种高定材质
-  // ==================================================
   const createWaferMaterial = (texture) => {
-    // 确保贴图边缘不拉伸、色彩空间正确
     texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.repeat.set(1, 1);
     texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.repeat.set(1, 1);
     texture.colorSpace = THREE.SRGBColorSpace;
-
     return new THREE.MeshStandardMaterial({
-      color: 0xffffff, roughness: 0.3, metalness: 0.7,
-      map: texture, emissiveMap: texture,
+      color: 0xffffff, map: texture, emissiveMap: texture,
       emissive: 0xffffff, emissiveIntensity: 0.7,
-      transparent: true, opacity: 1,
-      side: THREE.FrontSide // 确保单面网格也能正反面渲染
+      transparent: true, opacity: 1, side: THREE.FrontSide,
     });
   };
+
+  configureTexture(lidTexture, 1, 1);
+  configureTexture(texRightTop, 2, 2);
+  configureTexture(texRightBottom, 2, 2);
+  configureTexture(texLeft, 2, 2, 0, 1);
+  configureTexture(texLoadWafer, 2, 2, 0, 1);
 
   const matLeft = createWaferMaterial(texLeft);
   const matRightFront = createWaferMaterial(texRightTop);
   const matRightBack = createWaferMaterial(texRightBottom);
 
-  // D. 处理 GLTF 模型
   const realModel = gltf.scene;
   realModel.scale.set(0.07, 0.07, 0.07);
   realModel.position.set(0, -1.5, 2.62);
@@ -755,146 +774,176 @@ Promise.all([
 
   realModel.traverse((child) => {
     const name = child.name.toLowerCase();
-    if (name.includes('case_lid') || name.includes('caselid')) { caseLid = child; }
-    else if (name.includes('case_bottom') || name.includes('casebottom')) { caseBottom = child; }
-    else if (child.name === 'Waferright') {
-      earbudRight = child;
-      // #63f382
-      magicFollowLight = new THREE.PointLight(0x63f382, 365, 8);
-      magicFollowLight.position.set(-1.56, 0.66, -0.29);
-      child.add(magicFollowLight);
-    }
-    else if (child.name === 'Waferleft') { earbudLeft = child; }
+    if (name.includes("case_lid") || name.includes("caselid")) { caseLid = child; } 
+    else if (name.includes("case_bottom") || name.includes("casebottom")) { caseBottom = child; } 
+    else if (child.name === "Waferright") { earbudRight = child; } 
+    else if (child.name === "Waferleft") { earbudLeft = child; }
   });
 
   realModel.traverse((child) => {
     if (child.isMesh && child.material) {
-      child.material.roughness = 0.35; child.material.metalness = 0.6;
-      child.material.envMap = currentEnvMap; child.material.envMapIntensity = 1.2;
+      child.material.roughness = 0.35;
+      child.material.metalness = 0.6;
+      child.material.envMap = currentEnvMap;
+      child.material.envMapIntensity = 0; // 遵循调优代码：底壳环境光设0
       child.material.needsUpdate = true;
     }
   });
 
+  // 🌟 A. 盖子 UV 收缩与材质覆盖
   if (caseLid) {
     caseLid.traverse((mesh) => {
       if (mesh.isMesh) {
+        const uvAttribute = mesh.geometry.attributes.uv;
+        if (uvAttribute) {
+          const uvArray = uvAttribute.array;
+          let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+          for (let i = 0; i < uvArray.length; i += 2) {
+            minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+            minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+          }
+          const rangeU = maxU - minU; const rangeV = maxV - minV;
+          const shrink = 0.02;
+          for (let i = 0; i < uvArray.length; i += 2) {
+            let u = (uvArray[i] - minU) / rangeU;
+            let v = (uvArray[i + 1] - minV) / rangeV;
+            uvArray[i] = u * (1 - shrink * 2) + shrink;
+            uvArray[i + 1] = v * (1 - shrink * 2) + shrink;
+          }
+          uvAttribute.needsUpdate = true;
+        }
         mesh.material = new THREE.MeshStandardMaterial({
-          color: 0xffffff, roughness: 0.75, metalness: 0.15, transparent: true,
-          opacity: 0.83, map: lidTexture, envMap: currentEnvMap, envMapIntensity: 1.2
+          color: 0xffffff, roughness: 0.25, metalness: 1, transparent: true,
+          emissive: 0x162b48, side: THREE.DoubleSide, opacity: 0.5,
+          map: lidTexture, envMap: currentEnvMap, envMapIntensity: 1.5,
         });
         mesh.castShadow = true; mesh.receiveShadow = true;
       }
     });
   }
 
-  if (caseBottom) {
-    caseBottom.traverse((mesh) => {
-      if (mesh.isMesh) {
-        mesh.material = new THREE.MeshStandardMaterial({
-          color: 0x00020d, roughness: 0.5, metalness: 0.2, envMap: currentEnvMap, envMapIntensity: 1.2
-        });
-        mesh.castShadow = true; mesh.receiveShadow = true;
-      }
-    });
-  }
-
-  // ==================================================
-  // 🌟 E. 核心：左右晶圆专属材质分发
-  // ==================================================
-
-  // 1. 左晶圆：两面一致，无脑贴 matLeft
+  // 🌟 B. 左晶圆 UV 重算与材质覆盖
   if (earbudLeft) {
     earbudLeft.traverse((mesh) => {
       if (mesh.isMesh) {
-        mesh.material = matLeft;
+        const uvAttribute = mesh.geometry.attributes.uv;
+        const uvArray = uvAttribute.array;
+        let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+        for (let i = 0; i < uvArray.length; i += 2) {
+          minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+          minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+        }
+        const rangeU = maxU - minU; const rangeV = maxV - minV;
+        for (let i = 0; i < uvArray.length; i += 2) {
+          uvArray[i] = (uvArray[i] - minU) / rangeU;
+          uvArray[i + 1] = (uvArray[i + 1] - minV) / rangeV;
+        }
+        uvAttribute.needsUpdate = true;
+        mesh.material = new THREE.MeshStandardMaterial({
+          color: 0x222222, transparent: true, emissive: 0x222222, opacity: 1,
+          roughness: 0.5, metalness: 0.5, map: texLeft,
+          envMap: currentEnvMap, envMapIntensity: 1.5,
+        });
         mesh.castShadow = true; mesh.receiveShadow = true;
       }
     });
   }
 
-  // 2. 右晶圆：智能区分正反面
+  // 🌟 C. 右晶圆 世界坐标投影与正反面材质分配
   if (earbudRight) {
     earbudRight.traverse((mesh) => {
       if (mesh.isMesh) {
-        console.log(mesh)
-        const name = mesh.name.toLowerCase();
+        const geometry = mesh.geometry;
+        const positions = geometry.attributes.position.array;
+        const newUVs = new Float32Array((positions.length / 3) * 2);
+        for (let i = 0; i < positions.length / 3; i++) {
+          newUVs[i * 2] = (positions[i * 3] + 2) / 4;
+          newUVs[i * 2 + 1] = (positions[i * 3 + 2] + 2) / 4;
+        }
+        geometry.setAttribute("uv", new THREE.BufferAttribute(newUVs, 2));
+        geometry.attributes.uv.needsUpdate = true;
 
-        // 策略一：如果建模师给正反面网格命名了，优先按名字分配
-        if (name.includes('back') || name.includes('bottom')) {
-          mesh.material = matRightBack;
-        } else if (name.includes('front') || name.includes('top')) {
+        const name = mesh.name.toLowerCase();
+        if (name === "柱体026") {
+          const uvAttribute = mesh.geometry.attributes.uv;
+          const uvArray = uvAttribute.array;
+          let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+          for (let i = 0; i < uvArray.length; i += 2) {
+            minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+            minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+          }
+          for (let i = 0; i < uvArray.length; i += 2) {
+            uvArray[i] = (uvArray[i] - minU) / (maxU - minU);
+            uvArray[i + 1] = (uvArray[i + 1] - minV) / (maxV - minV);
+          }
+          uvAttribute.needsUpdate = true;
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: 0x222222, transparent: true, emissive: 0x222222, opacity: 1,
+            map: texLeft, envMap: currentEnvMap, envMapIntensity: 1.5,
+          });
+        }
+        if (name === "柱体026_1") {
+          const uvAttribute = mesh.geometry.attributes.uv;
+          const uvArray = uvAttribute.array;
+          let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+          for (let i = 0; i < uvArray.length; i += 2) {
+            minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
+            minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
+          }
+          for (let i = 0; i < uvArray.length; i += 2) {
+            uvArray[i] = (uvArray[i] - minU) / (maxU - minU);
+            uvArray[i + 1] = (uvArray[i + 1] - minV) / (maxV - minV);
+          }
+          uvAttribute.needsUpdate = true;
           mesh.material = matRightFront;
         }
-        // 策略二：如果没命名，系统自动计算该网格的“Z轴物理重心”来判断正反面！
-        else {
-          mesh.geometry.computeBoundingBox();
-          const centerZ = (mesh.geometry.boundingBox.max.z + mesh.geometry.boundingBox.min.z) / 2;
-
-          // 💡 关键：通常 Z 轴较大的一侧是正面。
-          // 如果你发现正面和背面的贴图贴反了，只需要把这里的大于号 > 改成小于号 < 即可。
-          if (centerZ > 0) {
-            mesh.material = matRightFront; // 正面贴图
-          } else {
-            mesh.material = matRightBack;  // 背面贴图
-          }
-        }
-
         mesh.castShadow = true; mesh.receiveShadow = true;
       }
     });
   }
 
-  // D. 结构挂载与 GSAP 动画解耦包装
+  // ==================================================
+  // 🌟 D. 重点保留：结构挂载与 GSAP 动画解耦包装
+  // ==================================================
   if (caseLid) {
     modelGroup.attach(caseLid);
     lidInitialRot = caseLid.rotation.x;
   }
 
-  // 🌟 左晶圆解耦（创造替身给 GSAP，保护真身自由漂浮）
+  // 替身包裹：左晶圆
   if (earbudLeft) {
     innerWaferL = earbudLeft;
-    modelGroup.attach(innerWaferL); // 提取并计算真实世界坐标
-
-    earbudLeft = new THREE.Group(); // 创建替身
+    modelGroup.attach(innerWaferL);
+    earbudLeft = new THREE.Group(); 
     earbudLeft.position.copy(innerWaferL.position);
     earbudLeft.rotation.copy(innerWaferL.rotation);
     earbudLeft.scale.copy(innerWaferL.scale);
-
-    modelGroup.add(earbudLeft); // 替身加入模型组
-
-    // 真实模型位置归零，并放入替身内部
+    modelGroup.add(earbudLeft);
     innerWaferL.position.set(0, 0, 0);
     innerWaferL.rotation.set(0, 0, 0);
     innerWaferL.scale.set(1, 1, 1);
     earbudLeft.add(innerWaferL);
   }
 
-  // 🌟 右晶圆解耦
+  // 替身包裹：右晶圆
   if (earbudRight) {
     innerWaferR = earbudRight;
     modelGroup.attach(innerWaferR);
-
     earbudRight = new THREE.Group();
     earbudRight.position.copy(innerWaferR.position);
     earbudRight.rotation.copy(innerWaferR.rotation);
     earbudRight.scale.copy(innerWaferR.scale);
-
     modelGroup.add(earbudRight);
-
     innerWaferR.position.set(0, 0, 0);
     innerWaferR.rotation.set(0, 0, 0);
     innerWaferR.scale.set(1, 1, 1);
     earbudRight.add(innerWaferR);
   }
 
-  // 🌟 初始化追踪 DOM 节点
   initTrackingElements();
-
-  // 🌟 核心：通知系统资产准备就绪
   isAssetsLoaded = true;
 
 }).catch(error => { console.error("加载错误:", error); });
-
 
 // ==========================================
 // 5. 用户交互时间轴 (ScrollTrigger) - 保持原样
