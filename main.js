@@ -554,6 +554,7 @@ class Circles {
       dashed: true,
       premultipliedAlpha: true,
       transparent: true,
+      opacity: 0.3,
       resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
     });
 
@@ -563,8 +564,8 @@ class Circles {
       uFadeSize: new THREE.Uniform(0.05),
       uLineLength: new THREE.Uniform(this.curve.getLength()),
       uTime: new THREE.Uniform(0),
-      COLOR_HIGHLIGHT: new THREE.Uniform(new THREE.Color(0xffffff)), // #0026ff
-      COLOR_DASH: new THREE.Uniform(new THREE.Color(0x0026ff)),
+      COLOR_HIGHLIGHT: new THREE.Uniform(new THREE.Color(0xffffff)), // #5599ff
+      COLOR_DASH: new THREE.Uniform(new THREE.Color(0x5599ff)),
     };
 
     this.material.onBeforeCompile = (_shader) => {
@@ -600,7 +601,8 @@ class Circles {
 }
 
 circlesSystem = new Circles();
-circlesSystem.instances.position.set(0, 0, 10);
+circlesSystem.instances.position.set(0, 0, -5.0);
+circlesSystem.instances.scale.set(30, 30, 30);
 circlesSystem.instances.rotation.set(THREE.MathUtils.degToRad(13) - Math.PI * 0.5, THREE.MathUtils.degToRad(15), THREE.MathUtils.degToRad(-32));
 scene3D.add(circlesSystem.instances);
 
@@ -680,9 +682,8 @@ function enterMainScene() {
       }
     }, "hitGround")
     .to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, "hitGround")
-    .fromTo('.ui-stage-1',
-      { opacity: 0, y: 30, filter: 'blur(10px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: "power2.out" },
+    .to('.ui-stage-1',
+      { opacity: 1, y: 30, duration: 1.5, ease: "power2.out" },
       "hitGround+=0.2"
     )
     .addLabel("openLid", "hitGround+=1.5")
@@ -691,6 +692,7 @@ function enterMainScene() {
     .set(sphericalGridGroup, { visible: true }, "deepSpace")
     .set(particlesGroup, { visible: true }, "deepSpace")
     .set(circlesSystem.instances, { visible: true }, "deepSpace") // 🌟 揭示发光虚线系统
+    .set(earbudLeft, { visible: false }, 0.5)
     .add(() => {
       document.body.style.overflow = 'auto';
       document.documentElement.style.overflow = 'auto';
@@ -1117,11 +1119,13 @@ function initScrollTimeline() {
   // ------------------------------------------
   tl.addLabel("stage1", 0);
 
-  tl.to(".ui-stage-1", { opacity: 0, duration: 0.5 }, "stage1");
+  tl.to(".ui-stage-1", { opacity: 0, duration: 0.4 }, "stage2");
 
   // 1. 盒子微动：时长从 1.5 降到 1.0
   tl.to(modelGroup.position, { x: -1.2, y: -0.65, z: -0.16, duration: 1.0, ease: "power1.inOut" }, "stage1")
     .to(modelGroup.rotation, { x: -0.25159, y: 0.288407, z: 0.568407, duration: 1.0, ease: "power1.inOut" }, "stage1");
+    console.log(earbudLeft)
+  tl.set(earbudLeft, { visible: true }, "stage1+=0.2")
 
   // ✅ 2. 🌟 新版波纹无缝绑定滚轮！
   // 在 stage1 触发时，显示波纹，并预设光影强度
@@ -1157,7 +1161,7 @@ function initScrollTimeline() {
   }, "stage1");
 
   tl.to(sandParticlesSystem.instance.position, {
-    y: -7.5,   // 沙粒系统与海面保持同步下沉，增强整体感
+    y: -6.5,   // 沙粒系统与海面保持同步下沉，增强整体感
     z: 9.5,    // 微微向镜头推近，但比海面更近一点，制造层次感      
     duration: 4,
     ease: "power1.inOut"
@@ -1334,7 +1338,8 @@ function initScrollTimeline() {
     .to(earbudRight.position, { x: w2Initial.pos.x, y: w2Initial.pos.y, z: w2Initial.pos.z, duration: fallActionTime, ease: "power2.in" }, fallStart);
 
   tl.to(earbudLeft.rotation, { y: "+=" + (Math.PI / 2), duration: 0.5, ease: "power1.inOut" }, fallStart)
-    .to(earbudRight.rotation, { y: "-=" + (Math.PI / 2), duration: 0.5, ease: "power1.inOut" }, fallStart);
+    .to(earbudRight.rotation, { y: "-=" + (Math.PI / 2), duration: 0.5, ease: "power1.inOut" }, fallStart)
+    
 
   // 🌟【新增 Label】：晶圆落地、准备关盖
   const lidClosureTime = "stage6+=1.1";
@@ -1345,7 +1350,8 @@ function initScrollTimeline() {
   }, "stage6+=0.8")
     .to(earbudRight.rotation, {
       x: w2Initial.rot.x, y: w2Initial.rot.y, z: w2Initial.rot.z, duration: 0.3, ease: "back.out(1.2)"
-    }, "stage6+=0.8");
+    }, "stage6+=0.8")
+    .set(earbudLeft, { visible: false }, "stage6+=1.12")
   tl.to(caseLid.rotation, { x: lidInitialRot, duration: 0.3, ease: "bounce.out" }, lidClosureTime);
 
   // ==========================================
@@ -1366,7 +1372,7 @@ function initScrollTimeline() {
     }
   }, impactTime);
 
-  tl.fromTo(".ui-stage-1", { opacity: 0, filter: 'blur(10px)', scale: 1.1 }, { opacity: 1, filter: 'blur(0px)', scale: 1, duration: 0.6, ease: "power2.out" }, "stage6+=1.2");
+  tl.to(".ui-stage-1", { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, "stage6+=1.2")
 
   tl.to({}, { duration: 2.5 }, impactTime); 
   tl.addLabel("stage6_end", "+=0"); // 标签自动贴合到撑长后的末尾

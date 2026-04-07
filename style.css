@@ -5,7 +5,7 @@ html {
   background: #020611;
   color: white;
   /* 将阿里巴巴普惠体放在首位 */
-  font-family: 'AlibabaPuHuiTi', Arial, sans-serif; 
+  font-family: 'AlibabaPuHuiTi', Arial, sans-serif;
 }
 
 /* 将初始的滚动锁定单独交给 body */
@@ -17,37 +17,38 @@ body {
    3D 屏幕投影指示线
 ========================================= */
 .gl__projected-point {
-    position: absolute;
-    /* 初始定位在屏幕正中心，方便后续计算相对位移 */
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    pointer-events: none; /* 重要：防止遮挡鼠标交互 */
-    z-index: 100;
+  position: absolute;
+  /* 初始定位在屏幕正中心，方便后续计算相对位移 */
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  /* 重要：防止遮挡鼠标交互 */
+  z-index: 100;
 
-    /* 默认隐藏，入场时才显示 */
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.4s ease-out, visibility 0s linear 0.4s;
+  /* 默认隐藏，入场时才显示 */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease-out, visibility 0s linear 0.4s;
 }
 
 /* 激活状态 */
 .gl__projected-point.active {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.4s ease-out, visibility 0s linear 0s;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease-out, visibility 0s linear 0s;
 }
 
 /* 调整 SVG 在指示点周围的位置 */
 .annotation-svg {
-    position: absolute;
-    /* 这个设置决定了线条是从圆点向哪个方向延伸，这里设置向右上方延伸 */
-    bottom: 0; 
-    left: 0; 
+  position: absolute;
+  /* 这个设置决定了线条是从圆点向哪个方向延伸，这里设置向右上方延伸 */
+  bottom: 0;
+  left: 0;
 }
 
 /* =========================================
@@ -446,6 +447,22 @@ header {
   right: 15%;
 }
 
+@media (max-width: 1601px) {
+  .ui-stage-2 .param.left {
+    top: 43%;
+    /* 左侧明显偏上 */
+    left: 18%;
+    width: 320px;
+  }
+
+  .ui-stage-2 .param.right {
+    text-align: left;
+    top: 55%;
+    /* 右侧明显偏下 */
+    right: 10%;
+  }
+}
+
 .ui-stage-2 .param-text {
   position: relative;
   z-index: 2;
@@ -510,7 +527,7 @@ header {
 }
 
 .stage3-title p {
-  margin: 0; 
+  margin: 0;
 }
 
 .stage3-title p:nth-child(1) {
@@ -632,7 +649,7 @@ header {
 }
 
 .stage4-title p {
-  margin: 0; 
+  margin: 0;
 }
 
 .stage4-title p:nth-child(1) {

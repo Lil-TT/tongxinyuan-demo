@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TMR晶圆主要磁性性能 - 元臻微电</title>
+    <title>元臻微电</title>
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap"
@@ -16,6 +17,30 @@
 </head>
 
 <body>
+    <div class="loader-w">
+        <div class="loader">
+            <div class="loader__circle">
+                <div class="loader__dot dot1"></div>
+            </div>
+            <div class="loader__circle">
+                <div class="loader__dot dot2"></div>
+            </div>
+            <div class="loader__circle">
+                <div class="loader__dot dot3"></div>
+            </div>
+            <div class="loader__circle"></div>
+            <div class="loader__circle"></div>
+            <div class="loader__circle core"></div>
+        </div>
+    </div>
+
+    <div class="tagcloud-w">
+        <span class="tagcloud--item top-right">[ WAFER ]</span>
+        <span class="tagcloud--item center-left">[ EUTRONSENSE ]</span>
+        <span class="tagcloud--item bottom-center">[ TMR GMR AMR ]</span>
+        <span id="counter">[ 000 ]</span>
+    </div>
+
     <a href="#" id="reset-btn" class="back-btn">返回选型</a>
     <div id="cursor-hint" class="cursor-hint">点击晶圆探索</div>
 
@@ -28,17 +53,18 @@
         <line id="line-sensor" stroke="rgba(255,255,255,0.4)" stroke-width="1" opacity="0"></line>
     </svg>
 
-    <div id="intro-ui" class="ui-layer" style="opacity: 1;">
-        
+    <div id="intro-ui" class="ui-layer" style="opacity: 0;">
+
         <div class="projected-anchor wafer-hotspot" id="track-storage" data-target="storage">
             <div class="callout callout-tr param">
                 <div class="callout-text param-text text-left">
                     <div class="text-3xl font-light mb-1 text-white">xMR薄膜晶圆</div>
-                    <span class="text-xs text-gray-400 mt-2 block">xMR各种结构和性能的晶圆。<br/>6 吋、8 吋、12 吋</span>
+                    <span class="text-xs text-gray-400 mt-2 block">xMR各种结构和性能的晶圆。<br />6 吋、8 吋、12 吋</span>
                 </div>
                 <svg class="guide-line tr-line" viewBox="0 0 450 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="448" cy="1.5" r="2" fill="#fff" opacity="0.8" />
-                    <path d="M 448 1.5 H 99.8 C 75.1 1.5 52.2 14.5 39.6 35.7 L 1.5 100" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <path d="M 448 1.5 H 99.8 C 75.1 1.5 52.2 14.5 39.6 35.7 L 1.5 100" stroke="rgba(255,255,255,0.4)"
+                        stroke-width="1" />
                     <circle cx="1.5" cy="100" r="2" fill="#fff" opacity="0.8" />
                 </svg>
             </div>
@@ -52,7 +78,8 @@
                 </div>
                 <svg class="guide-line cl-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="2" cy="1.5" r="2" fill="#fff" opacity="0.8" />
-                    <path d="M 2 1.5 H 181.1 C 205.8 1.5 228.7 14.5 241.3 35.7 L 279.5 100" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <path d="M 2 1.5 H 181.1 C 205.8 1.5 228.7 14.5 241.3 35.7 L 279.5 100"
+                        stroke="rgba(255,255,255,0.4)" stroke-width="1" />
                     <circle cx="279.5" cy="100" r="2" fill="#fff" opacity="0.8" />
                 </svg>
             </div>
@@ -66,15 +93,17 @@
                 </div>
                 <svg class="guide-line br-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="279.5" cy="1.5" r="2" fill="#fff" opacity="0.8" />
-                    <path d="M1 100.5H181.159C205.859 100.5 228.731 87.4821 241.344 66.2448L279.5 2" stroke="white" stroke-width="0.5"/>
+                    <path d="M1 100.5H181.159C205.859 100.5 228.731 87.4821 241.344 66.2448L279.5 2" stroke="white"
+                        stroke-width="0.5" />
                     <circle cx="1.5" cy="100" r="2" fill="#fff" opacity="0.8" />
                 </svg>
             </div>
         </div>
     </div>
 
-    <div id="stage2-ui" class="ui-layer" style="opacity: 0; pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 45;">
-        
+    <div id="stage2-ui" class="ui-layer"
+        style="opacity: 0; pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 45;">
+
         <div id="stage2-content-sensor" class="stage2-content" style="display: none;">
             <div class="stage2-title-left">
                 <h1 class="text-6xl font-medium mb-4 text-white tracking-widest">xMR</h1>
@@ -123,9 +152,9 @@
                         <div class="u-lines-split">隧道磁电阻</div>
                     </h1>
                     <div class="section__desc">
-                        <p>湖北元臻微电独有的TMR技术已建立完整体系<br/>        
-                            拥有大动态高线性度、高灵敏度高精度特性<br/>
-                            MR达到136%-241%，均匀性≤1.5%<br/>
+                        <p>湖北元臻微电独有的TMR技术已建立完整体系<br />
+                            拥有大动态高线性度、高灵敏度高精度特性<br />
+                            MR达到136%-241%，均匀性≤1.5%<br />
                             可根据客户需求进行定制化制备</p>
                         </p>
                         <p class="text-xs font-mono text-gray-500 tracking-widest">[ Launching Phase 2026 ]</p>
@@ -222,7 +251,7 @@
                         <div class="specs__data">0.94<span class="specs__unit">[Oe]</span></div>
                     </div>
                     <div>
-                        <div class="specs__header" >[ 生产规格 ]</div>
+                        <div class="specs__header">[ 生产规格 ]</div>
                         <div class="specs__data">6<span class="specs__unit">吋、</span> 8<span
                                 class="specs__unit">吋、</span> 12<span class="specs__unit">吋</span></div>
                     </div>
@@ -242,7 +271,7 @@
                     <li class="features">
                         <div class="feature__label">EUTRONSENSE</div>
                         <div class="feature__desc">元臻微电独有的TMR技术</div>
-                    </li> 
+                    </li>
                     <li class="features">
                         <div class="feature__label">LINEARIYT</div>
                         <div class="feature__desc">拥有大动态高线性度</div>

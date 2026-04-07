@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'; // 🌟 新增引入 HDR
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import { initGlobalNav } from './nav.js';
@@ -30,7 +30,16 @@ const stage2Ui = document.getElementById('stage2-ui');
 const mainWrapper = document.getElementById('main-wrapper');
 const backBtn = document.getElementById('reset-btn');
 const cursorHint = document.getElementById('cursor-hint');
-initGlobalNav(); 
+
+// ==========================================
+// 🌟 开场动画 DOM 元素
+// ==========================================
+const loaderW = document.querySelector('.loader-w');
+const tagcloudW = document.querySelector('.tagcloud-w');
+const counterEl = document.getElementById('counter');
+const webglContainer = document.querySelector('.webgl-container');
+
+initGlobalNav();
 
 // ==========================================
 // 🌟 1. Three.js 基础环境与影视级灯光
@@ -42,20 +51,14 @@ camera.position.set(0, 0, 15);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-// 🌟 开启 sRGB 和电影级色调映射，配合 HDR 渲染最真实的金属光泽
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 document.getElementById('webgl-mount').appendChild(renderer.domElement);
 
-// ----------------------------------------------------
-// 🌟 完全移植 main.js 的灯光系统
-// ----------------------------------------------------
-// 1. 环境光 - 提供基础照明，避免死黑
+// 灯光系统
 const ambientLight = new THREE.AmbientLight(0x354766, 0.5);
 scene.add(ambientLight);
-
-// 2. 左侧暖光（主光之一）
 const leftMainLight = new THREE.PointLight(0xebf6fc, 2);
 leftMainLight.position.set(-4, 2.5, 3);
 leftMainLight.castShadow = true;
@@ -63,8 +66,6 @@ leftMainLight.shadow.mapSize.width = 1024;
 leftMainLight.shadow.mapSize.height = 1024;
 leftMainLight.shadow.bias = -0.0001;
 scene.add(leftMainLight);
-
-// 3. 右侧冷光（主光之二）
 const rightMainLight = new THREE.PointLight(0xebf6fc, 2);
 rightMainLight.position.set(4, 2.5, 3);
 rightMainLight.castShadow = true;
@@ -72,38 +73,28 @@ rightMainLight.shadow.mapSize.width = 1024;
 rightMainLight.shadow.mapSize.height = 1024;
 rightMainLight.shadow.bias = -0.0001;
 scene.add(rightMainLight);
-
-// 4. 背光暖色（轮廓光） #ffaa55
-// const backRimLight = new THREE.PointLight(0xffaa55, 1);
-// backRimLight.position.set(0, 1.5, -5);
-// scene.add(backRimLight);
-
-// 5. 顶部补光
 const topFillLight = new THREE.PointLight(0x88aaff, 1.5);
 topFillLight.position.set(0, 5, 2);
 scene.add(topFillLight);
-
-// 6. 底部柔光
 const bottomFillLight = new THREE.PointLight(0x5588aa, 0.5);
 bottomFillLight.position.set(0, -3, 1);
 scene.add(bottomFillLight);
 
-// ==========================================
-// 🌟 2. 核心架构：包裹组 (解耦动画)
-// ==========================================
+// 核心组
 const parallaxGroup = new THREE.Group();
 scene.add(parallaxGroup);
 
+// 加载器与资源
 const gltfLoader = new GLTFLoader();
 const textureLoader = new THREE.TextureLoader();
 const hdrLoader = new HDRLoader().setDataType(THREE.FloatType);
 
 const models = { storage: null, sensor: null };
-
 const projectedPosition = new THREE.Vector3();
-let trackingPoints = []; 
+let trackingPoints = [];
 let isAssetsLoaded = false;
 
+// 配置数据
 const config = {
     stage1: {
         "storage": { "x": 2.4, "y": 0.92, "z": -7.8, "rx": -0.703716754404113, "ry": 0.314159265358979, "rz": 1.06814150222053, "scale": 0.32 },
@@ -126,28 +117,20 @@ const config = {
 };
 
 // ==========================================
-// 🌟 3. 加载模型与材质重构引擎
+// 🌟 模型提取与材质函数
 // ==========================================
-const STORAGE_MODEL_PATH = './box6.glb';
-const SENSOR_MODEL_PATH = './box6.glb';
-
 function extractWafer(gltf, targetName) {
-    const wrapper = new THREE.Group();     
-    const innerGroup = new THREE.Group();  
-
+    const wrapper = new THREE.Group();
+    const innerGroup = new THREE.Group();
     const wLeft = targetName === 1 ? gltf.scene.getObjectByName('Waferleft') : null;
     const wRight = targetName === 2 ? gltf.scene.getObjectByName('Waferright') : null;
     if (wLeft) innerGroup.add(wLeft);
     if (wRight) innerGroup.add(wRight);
-
     wrapper.add(innerGroup);
-    wrapper.userData.inner = innerGroup; 
+    wrapper.userData.inner = innerGroup;
     return wrapper;
 }
 
-/**
- * 贴图属性配置器
- */
 function configureTexture(texture, repeatX = 1, repeatY = 1, offsetX = 0, offsetY = 0) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
@@ -159,22 +142,140 @@ function configureTexture(texture, repeatX = 1, repeatY = 1, offsetX = 0, offset
     texture.magFilter = THREE.LinearFilter;
 }
 
-Promise.all([
-    new Promise((res, rej) => gltfLoader.load(STORAGE_MODEL_PATH, res, undefined, rej)),
-    new Promise((res, rej) => gltfLoader.load(SENSOR_MODEL_PATH, res, undefined, rej)),
-    new Promise((res) => hdrLoader.load("./studio_small_09_2k.hdr", res)),
-    new Promise((res) => textureLoader.load("./img/B1.png", res)),
-    new Promise((res) => textureLoader.load("./img/A1.png", res)),
-    new Promise((res) => textureLoader.load("./img/B1.png", res))
-]).then(([gltf1, gltf2, hdrTexture, texLeft, texRightTop, texRightBottom]) => {
+// ==========================================
+// 🌟 开场动画相关变量与函数
+// ==========================================
+let spinCycleRunning = false;
+let spinCycleInterrupted = false;
+let animationStartTime = null;
+let currentSpinCycleTl = null;
 
-    // 🌟 A. HDR 环境贴图设置
+function playSpinCycle() {
+    if (spinCycleRunning) return;
+    spinCycleRunning = true;
+    spinCycleInterrupted = false;
+
+    const circles = document.querySelectorAll('.loader__circle:nth-child(-n+6)');
+    currentSpinCycleTl = gsap.to(circles, {
+        rotationX: "+=360",
+        duration: 3.5,
+        ease: 'power3.inOut',
+        stagger: 0.12,
+        onComplete: () => {
+            spinCycleRunning = false;
+            if (!spinCycleInterrupted && !isAssetsLoaded) {
+                playSpinCycle();
+            } else if (isAssetsLoaded) {
+                forceEnterMainScene();
+            }
+        }
+    });
+}
+
+function forceEnterMainScene() {
+    // 如果还未到最短显示时间（0.6秒），则延迟执行
+    if (animationStartTime) {
+        const elapsed = performance.now() - animationStartTime;
+        const minDisplayTime = 2000; // 毫秒
+        if (elapsed < minDisplayTime) {
+            const delay = minDisplayTime - elapsed;
+            setTimeout(() => {
+                if (spinCycleRunning) {
+                    spinCycleInterrupted = true;
+                    if (currentSpinCycleTl) currentSpinCycleTl.kill();
+                    spinCycleRunning = false;
+                }
+                enterMainScene();
+            }, delay);
+            return;
+        }
+    }
+
+    // 已满足最小时长，立即中断并进入
+    if (spinCycleRunning) {
+        spinCycleInterrupted = true;
+        if (currentSpinCycleTl) currentSpinCycleTl.kill();
+        spinCycleRunning = false;
+    }
+    enterMainScene();
+}
+
+function enterMainScene() {
+    const enterTl = gsap.timeline();
+    enterTl
+        .to(loaderW, { scale: 0.5, opacity: 0, filter: 'blur(10px)', duration: 1.0, ease: 'power3.inOut' }, 0)
+        .to(tagcloudW, { opacity: 0, duration: 0.8 }, 0)
+        .to(webglContainer, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0)
+        .call(() => {
+            if (loaderW) loaderW.style.display = 'none';
+            if (tagcloudW) tagcloudW.style.display = 'none';
+            if (webglContainer) webglContainer.style.opacity = '1';
+            resetToStage1();
+        }, null, 0.8);
+}
+
+function initLoaderAnimation() {
+    gsap.set('.loader__circle', { opacity: 0, filter: 'blur(16px)', rotationZ: -45 });
+    gsap.set('.tagcloud--item', { opacity: 0 });
+
+    const introTl = gsap.timeline({ delay: 0.5 });
+    introTl
+        .to('.loader__circle', { opacity: 1, filter: 'blur(0px)', duration: 2.5, ease: 'expo.out', stagger: { each: 0.15, from: "end" } }, 0)
+        .to('.tagcloud--item', { opacity: 1, duration: 1, stagger: 0.2 }, 1)
+        .call(() => {
+            animationStartTime = performance.now();
+            playSpinCycle();
+        }, null, 1.0);
+}
+
+// ==========================================
+// 🌟 加载管理器与进度跟踪
+// ==========================================
+const counterObj = { val: 0 };
+const manager = new THREE.LoadingManager();
+
+manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    const targetPercent = (itemsLoaded / itemsTotal) * 100;
+    gsap.to(counterObj, {
+        val: targetPercent,
+        duration: 0.3,
+        ease: "power1.out",
+        onUpdate: () => {
+            if (counterEl) {
+                counterEl.innerText = `[ ${Math.round(counterObj.val).toString().padStart(3, '0')} ]`;
+            }
+            if (targetPercent >= 99.9 && !isAssetsLoaded) {
+                setTimeout(() => {
+                    if (!isAssetsLoaded) {
+                        isAssetsLoaded = true;
+                        forceEnterMainScene();
+                    }
+                }, 50);
+            }
+        }
+    });
+};
+
+// 让所有 loader 共用同一个 manager
+const gltfLoaderWithManager = new GLTFLoader(manager);
+const textureLoaderWithManager = new THREE.TextureLoader(manager);
+const hdrLoaderWithManager = new HDRLoader(manager).setDataType(THREE.FloatType);
+
+const STORAGE_MODEL_PATH = './box6.glb';
+
+Promise.all([
+    new Promise((res, rej) => gltfLoaderWithManager.load(STORAGE_MODEL_PATH, res, undefined, rej)),
+    new Promise((res) => hdrLoaderWithManager.load("./studio_small_09_2k.hdr", res)),
+    new Promise((res) => textureLoaderWithManager.load("./img/B1.png", res)),
+    new Promise((res) => textureLoaderWithManager.load("./img/A1.png", res)),
+    new Promise((res) => textureLoaderWithManager.load("./img/B1.png", res))
+]).then(([gltf1, hdrTexture, texLeft, texRightTop, texRightBottom]) => {
+    // HDR 环境贴图
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     const currentEnvMap = pmremGenerator.fromEquirectangular(hdrTexture).texture;
     scene.environment = currentEnvMap;
     pmremGenerator.dispose();
 
-    // 🌟 B. 贴图参数设置
     configureTexture(texRightTop, 2, 2);
     configureTexture(texRightBottom, 2, 2);
     configureTexture(texLeft, 2, 2, 0, 1);
@@ -195,31 +296,22 @@ Promise.all([
             side: THREE.FrontSide,
         });
     };
-
     const matRightFront = createWaferMaterial(texRightTop);
 
-    // 🌟 C. 提取并包裹模型
-    models.storage = extractWafer(gltf1, 1); // 提取 Waferleft
-    models.sensor = extractWafer(gltf2, 2);  // 提取 Waferright
+    models.storage = extractWafer(gltf1, 1);
+    models.sensor = extractWafer(gltf1, 2);
 
-    // ==================================================
-    // 🌟 D. 应用专属 UV 重算与深度材质映射 (移植自 main.js)
-    // ==================================================
-    
-    // 1. Storage 晶圆 (对应 Waferleft)
+    // Storage 晶圆材质 UV 处理
     models.storage.userData.inner.traverse((mesh) => {
         if (mesh.isMesh) {
-            // UV 重新映射
             const uvAttribute = mesh.geometry.attributes.uv;
-            if(uvAttribute) {
+            if (uvAttribute) {
                 const uvArray = uvAttribute.array;
                 let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
-
                 for (let i = 0; i < uvArray.length; i += 2) {
                     minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
                     minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
                 }
-
                 const rangeU = maxU - minU; const rangeV = maxV - minV;
                 for (let i = 0; i < uvArray.length; i += 2) {
                     uvArray[i] = (uvArray[i] - minU) / rangeU;
@@ -227,31 +319,21 @@ Promise.all([
                 }
                 uvAttribute.needsUpdate = true;
             }
-
-            // 覆盖材质
             mesh.material = new THREE.MeshStandardMaterial({
-                color: 0x222222,
-                transparent: true,
-                emissive: 0x222222,
-                opacity: 1,
-                roughness: 0.5,
-                metalness: 0.5,
-                map: texLeft,
-                envMap: currentEnvMap,
-                envMapIntensity: 1.5,
+                color: 0x222222, transparent: true, emissive: 0x222222, opacity: 1,
+                roughness: 0.5, metalness: 0.5, map: texLeft,
+                envMap: currentEnvMap, envMapIntensity: 1.5,
             });
             mesh.castShadow = true; mesh.receiveShadow = true;
         }
     });
 
-    // 2. Sensor 晶圆 (对应 Waferright - 复杂的正反面判断)
+    // Sensor 晶圆材质 UV 处理
     models.sensor.userData.inner.traverse((mesh) => {
         if (mesh.isMesh) {
-            // 世界坐标 XZ 投影转 UV
             const geometry = mesh.geometry;
             const positions = geometry.attributes.position.array;
             const newUVs = new Float32Array((positions.length / 3) * 2);
-
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
                 const z = positions[i * 3 + 2];
@@ -262,13 +344,10 @@ Promise.all([
             geometry.attributes.uv.needsUpdate = true;
 
             const name = mesh.name.toLowerCase();
-            
-            // 背面映射逻辑
             if (name === "柱体026") {
                 const uvAttribute = mesh.geometry.attributes.uv;
                 const uvArray = uvAttribute.array;
                 let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
-
                 for (let i = 0; i < uvArray.length; i += 2) {
                     minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
                     minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
@@ -278,24 +357,15 @@ Promise.all([
                     uvArray[i + 1] = (uvArray[i + 1] - minV) / (maxV - minV);
                 }
                 uvAttribute.needsUpdate = true;
-
                 mesh.material = new THREE.MeshStandardMaterial({
-                    color: 0x222222,
-                    transparent: true,
-                    emissive: 0x222222,
-                    opacity: 1,
-                    map: texLeft,
-                    envMap: currentEnvMap,
-                    envMapIntensity: 1.5,
+                    color: 0x222222, transparent: true, emissive: 0x222222, opacity: 1,
+                    map: texLeft, envMap: currentEnvMap, envMapIntensity: 1.5,
                 });
             }
-            
-            // 正面高亮映射逻辑
             if (name === "柱体026_1") {
                 const uvAttribute = mesh.geometry.attributes.uv;
                 const uvArray = uvAttribute.array;
                 let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
-
                 for (let i = 0; i < uvArray.length; i += 2) {
                     minU = Math.min(minU, uvArray[i]); maxU = Math.max(maxU, uvArray[i]);
                     minV = Math.min(minV, uvArray[i + 1]); maxV = Math.max(maxV, uvArray[i + 1]);
@@ -305,7 +375,6 @@ Promise.all([
                     uvArray[i + 1] = (uvArray[i + 1] - minV) / (maxV - minV);
                 }
                 uvAttribute.needsUpdate = true;
-                
                 mesh.material = matRightFront;
             }
             mesh.castShadow = true; mesh.receiveShadow = true;
@@ -315,36 +384,22 @@ Promise.all([
     parallaxGroup.add(models.storage);
     parallaxGroup.add(models.sensor);
 
-    // 🌟 初始化追踪点矩阵
+    // 追踪点初始化
     trackingPoints = [
-        {
-            elementId: '#track-storage',
-            meshRef: () => models.storage.userData.inner,
-            localPos: new THREE.Vector3(-1.0, 1.5, 0)
-        },
-        {
-            elementId: '#track-sensor',
-            meshRef: () => models.sensor.userData.inner,
-            localPos: new THREE.Vector3(-1.5, 1.0, 0)
-        },
-        {
-            elementId: '#track-mems',
-            meshRef: () => models.sensor.userData.inner,
-            localPos: new THREE.Vector3(1.5, -2.0, 0)
-        }
+        { elementId: '#track-storage', meshRef: () => models.storage.userData.inner, localPos: new THREE.Vector3(-1.0, 1.5, 0) },
+        { elementId: '#track-sensor', meshRef: () => models.sensor.userData.inner, localPos: new THREE.Vector3(-1.5, 1.0, 0) },
+        { elementId: '#track-mems', meshRef: () => models.sensor.userData.inner, localPos: new THREE.Vector3(1.5, -2.0, 0) }
     ];
-
     trackingPoints.forEach(point => {
         point.domElement = document.querySelector(point.elementId);
     });
 
     isAssetsLoaded = true;
-
-    resetToStage1();
-});
+    forceEnterMainScene(); // 确保资源加载完成后立即尝试进入（会检查最小时长）
+}).catch(error => { console.error("加载错误:", error); });
 
 // ==========================================
-// 🌟 5. 生长动画引擎
+// 🌟 生长动画引擎
 // ==========================================
 function buildGuideLineAnim(selector) {
     const paths = document.querySelectorAll(`${selector} .guide-line path`);
@@ -364,12 +419,15 @@ function buildGuideLineAnim(selector) {
 }
 
 // ==========================================
-// 🌟 6. 核心流转 (保持之前逻辑不变，绑定点击事件)
+// 🌟 核心流转函数
 // ==========================================
 function resetToStage1() {
     currentState = STATES.STAGE_1_INTRO;
     document.body.style.overflow = 'hidden';
     window.scrollTo(0, 0);
+
+    if (models.storage) models.storage.visible = true;
+    if (models.sensor) models.sensor.visible = true;
 
     const tl = gsap.timeline();
     tl.to([mainWrapper, backBtn, stage2Ui], { opacity: 0, duration: 0.5, pointerEvents: 'none' })
@@ -387,19 +445,56 @@ function resetToStage1() {
     tl.add(buildGuideLineAnim('#intro-ui'), "-=0.2");
 }
 
+function goToStage3() {
+    currentState = STATES.STAGE_3_SPECS;
+    const activeModel = selectedWafer === 'storage' ? models.storage : models.sensor;
+    document.getElementById(`grid-${selectedWafer}`).style.display = 'block';
+    const targetConfig = config.stage3[selectedWafer];
+    const tl = gsap.timeline();
+
+    tl.to(stage2Ui, { opacity: 0, duration: 0.5 }, 0);
+    tl.to(activeModel.position, { x: targetConfig.x, y: targetConfig.y, z: targetConfig.z, duration: 1.5, ease: "power3.inOut" }, 0)
+        .to(activeModel.rotation, { x: targetConfig.rx, y: targetConfig.ry, z: targetConfig.rz, duration: 1.5 }, 0)
+        .to(activeModel.scale, { x: targetConfig.scale, y: targetConfig.scale, z: targetConfig.scale, duration: 1.5 }, 0);
+
+    tl.to([mainWrapper, backBtn], {
+        opacity: 1, duration: 1, pointerEvents: 'auto',
+        onStart: () => { document.body.style.overflow = 'auto'; },
+        onComplete: () => {
+            const specsEl = document.querySelector('.specs-w');
+            if (specsEl) {
+                void specsEl.offsetHeight;
+                specsEl.style.backdropFilter = 'blur(24.9px)';
+                requestAnimationFrame(() => { specsEl.style.backdropFilter = ''; });
+            }
+        }
+    }, "-=1");
+
+    ScrollTrigger.getAll().forEach(t => t.kill());
+    const scrollTl = gsap.timeline({ scrollTrigger: { trigger: "body", start: "top top", end: "bottom bottom", scrub: 1.5 } });
+    let finalLayout = {};
+    if (selectedWafer === 'storage') {
+        finalLayout = { x: -1.5, y: -5.5, z: -15.0, rotY: "+=" + Math.PI * 2 };
+    } else if (selectedWafer === 'sensor') {
+        finalLayout = { x: -3.0, y: 1.5, z: 2.5, rotY: "+=" + Math.PI * 1.8 };
+    }
+    scrollTl.to(activeModel.position, { x: finalLayout.x, y: finalLayout.y, z: finalLayout.z, ease: "power2.inOut" }, 0)
+        .to(activeModel.rotation, { y: finalLayout.rotY, ease: "none" }, 0);
+}
+
+// ==========================================
+// 🌟 事件绑定
+// ==========================================
 document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
     hotspot.addEventListener('click', (e) => {
         if (currentState !== STATES.STAGE_1_INTRO) return;
-
         currentState = STATES.STAGE_2_FOCUS;
         selectedWafer = e.currentTarget.getAttribute('data-target');
-
         document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
         document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
 
         const tl = gsap.timeline();
         tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
-
         const storageTarget = config.stage2[selectedWafer].storage;
         const sensorTarget = config.stage2[selectedWafer].sensor;
 
@@ -412,65 +507,45 @@ document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
             .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
 
         const stage2Ui = document.getElementById('stage2-ui');
-        if (stage2Ui) {
-            tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
-        }
-
-        stage2Timeout = setTimeout(() => {
-            if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
-        }, 10000);
+        if (stage2Ui) tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
+        stage2Timeout = setTimeout(() => { if (currentState === STATES.STAGE_2_FOCUS) goToStage3(); }, 10000);
     });
 });
 
 window.addEventListener('click', () => {
     if (!models.storage || !models.sensor) return;
-
     raycaster.setFromCamera(raycastMouse, camera);
     const intersectsStorage = raycaster.intersectObject(models.storage.userData.inner, true);
     const intersectsSensor = raycaster.intersectObject(models.sensor.userData.inner, true);
-    // ==========================================
-    // 🎯 【阶段 1】：点击进入特写 (Stage 2)
-    // ==========================================
+
     if (currentState === STATES.STAGE_1_INTRO) {
-    let target = null;
-    if (intersectsStorage.length > 0) target = 'storage';
-    else if (intersectsSensor.length > 0) target = 'sensor';
+        let target = null;
+        if (intersectsStorage.length > 0) target = 'storage';
+        else if (intersectsSensor.length > 0) target = 'sensor';
+        if (!target) return;
 
-    if (!target) return; 
+        currentState = STATES.STAGE_2_FOCUS;
+        selectedWafer = target;
+        document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
+        document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
 
-    currentState = STATES.STAGE_2_FOCUS;
-    selectedWafer = target; 
+        const tl = gsap.timeline();
+        tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
+        const storageTarget = config.stage2[selectedWafer].storage;
+        const sensorTarget = config.stage2[selectedWafer].sensor;
 
-    document.querySelectorAll('.stage2-content').forEach(el => el.style.display = 'none');
-    document.getElementById(`stage2-content-${selectedWafer}`).style.display = 'block';
+        tl.to(models.storage.position, { x: storageTarget.x, y: storageTarget.y, z: storageTarget.z, duration: 1.5, ease: "power3.out" }, 0)
+            .to(models.storage.rotation, { x: storageTarget.rx, y: storageTarget.ry, z: storageTarget.rz, duration: 1.5 }, 0)
+            .to(models.storage.scale, { x: storageTarget.scale, y: storageTarget.scale, z: storageTarget.scale, duration: 1.5 }, 0);
 
-    const tl = gsap.timeline();
-    tl.to(introUi, { opacity: 0, pointerEvents: 'none', duration: 0.5 });
+        tl.to(models.sensor.position, { x: sensorTarget.x, y: sensorTarget.y, z: sensorTarget.z, duration: 1.5, ease: "power3.out" }, 0)
+            .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
+            .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
 
-    const storageTarget = config.stage2[selectedWafer].storage;
-    const sensorTarget = config.stage2[selectedWafer].sensor;
-
-    tl.to(models.storage.position, { x: storageTarget.x, y: storageTarget.y, z: storageTarget.z, duration: 1.5, ease: "power3.out" }, 0)
-        .to(models.storage.rotation, { x: storageTarget.rx, y: storageTarget.ry, z: storageTarget.rz, duration: 1.5 }, 0)
-        .to(models.storage.scale, { x: storageTarget.scale, y: storageTarget.scale, z: storageTarget.scale, duration: 1.5 }, 0);
-
-    tl.to(models.sensor.position, { x: sensorTarget.x, y: sensorTarget.y, z: sensorTarget.z, duration: 1.5, ease: "power3.out" }, 0)
-        .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
-        .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
-
-    const stage2Ui = document.getElementById('stage2-ui');
-    if (stage2Ui) {
-        tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
-    }
-
-    stage2Timeout = setTimeout(() => {
-        if (currentState === STATES.STAGE_2_FOCUS) goToStage3();
-    }, 10000);
-    } 
-    // ==========================================
-    // 🎯 【阶段 2】：点击当前聚焦的晶圆进入参数 (Stage 3)
-    // ==========================================
-    else if (currentState === STATES.STAGE_2_FOCUS) {
+        const stage2Ui = document.getElementById('stage2-ui');
+        if (stage2Ui) tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
+        stage2Timeout = setTimeout(() => { if (currentState === STATES.STAGE_2_FOCUS) goToStage3(); }, 10000);
+    } else if (currentState === STATES.STAGE_2_FOCUS) {
         if (selectedWafer === 'storage' && intersectsStorage.length > 0) {
             clearTimeout(stage2Timeout);
             goToStage3();
@@ -489,93 +564,6 @@ window.addEventListener('wheel', (e) => {
     }
 });
 
-function goToStage3() {
-    currentState = STATES.STAGE_3_SPECS;
-    const activeModel = selectedWafer === 'storage' ? models.storage : models.sensor;
-
-    document.getElementById(`grid-${selectedWafer}`).style.display = 'block';
-
-    const targetConfig = config.stage3[selectedWafer];
-    const tl = gsap.timeline();
-
-    tl.to(stage2Ui, { opacity: 0, duration: 0.5 }, 0);
-
-    tl.to(activeModel.position, { x: targetConfig.x, y: targetConfig.y, z: targetConfig.z, duration: 1.5, ease: "power3.inOut" }, 0)
-        .to(activeModel.rotation, { x: targetConfig.rx, y: targetConfig.ry, z: targetConfig.rz, duration: 1.5 }, 0)
-        .to(activeModel.scale, { x: targetConfig.scale, y: targetConfig.scale, z: targetConfig.scale, duration: 1.5 }, 0);
-
-    // 找到这段呼出 Stage 3 参数网格的代码
-    tl.to([mainWrapper, backBtn], {
-        opacity: 1,
-        duration: 1,
-        pointerEvents: 'auto', 
-        onStart: () => {
-            document.body.style.overflow = 'auto';
-        },
-        // 🌟 新增：在动画结束瞬间，强制浏览器重新计算渲染层（模拟 F12）
-        onComplete: () => {
-            const specsEl = document.querySelector('.specs-w');
-            if (specsEl) {
-                // 强制重排（已有）
-                void specsEl.offsetHeight;
-                
-                // 🌟 关键：临时修改 backdrop-filter 再恢复，强制重新合成
-                const beforeStyle = window.getComputedStyle(specsEl, '::before');
-                const originalFilter = beforeStyle.backdropFilter || 'blur(25px)';
-                specsEl.style.backdropFilter = 'blur(24.9px)';
-                requestAnimationFrame(() => {
-                    specsEl.style.backdropFilter = '';
-                });
-            }
-        }
-    }, "-=1");
-
-// ==========================================
-    // 🌟 5. 滚动视差：主角移向左侧，形成左右排版
-    // ==========================================
-    ScrollTrigger.getAll().forEach(t => t.kill()); // 清理旧的触发器
-
-    const scrollTl = gsap.timeline({
-        scrollTrigger: { 
-            trigger: "body", 
-            start: "top top", 
-            end: "bottom bottom", 
-            scrub: 1.5 
-        }
-    });
-
-    // 🌟 核心修改：为两片不同的晶圆分别定制最终排版坐标！
-    let finalLayout = {};
-    
-    if (selectedWafer === 'storage') {
-        finalLayout = {
-            x: -1.5,   // Storage 晶圆的最终 X 位置
-            y: -5.5,      // Storage 晶圆的最终 Y 高度
-            z: -15.0,    // Storage 晶圆的最终 Z 深度
-            rotY: "+=" + Math.PI * 2 // 旋转圈数
-        };
-    } else if (selectedWafer === 'sensor') {
-        finalLayout = {
-            x: -3.0,
-            y: 1.5, 
-            z: 2.5,
-            rotY: "+=" + Math.PI * 1.8
-        };
-    }
-
-    // 随着滚动，主角慢慢移向各自专属的侧边排版位置
-    scrollTl.to(activeModel.position, {
-        x: finalLayout.x,
-        y: finalLayout.y,
-        z: finalLayout.z,
-        ease: "power2.inOut"
-    }, 0)
-    .to(activeModel.rotation, {
-        y: finalLayout.rotY,
-        ease: "none"
-    }, 0);
-}
-
 backBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (currentState === STATES.STAGE_3_SPECS) {
@@ -584,14 +572,19 @@ backBtn.addEventListener('click', (e) => {
     }
 });
 
+// ==========================================
+// 🌟 渲染循环与投影追踪
+// ==========================================
 window.addEventListener('mousemove', (event) => {
     mouse.targetX = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.targetY = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycastMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    raycastMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    if (cursorHint) {
+        gsap.to(cursorHint, { x: event.clientX + 15, y: event.clientY + 15, duration: 0.15, ease: "power2.out" });
+    }
 });
 
-// ==========================================
-// 🌟 7. 渲染循环 (投影追踪与物理排斥)
-// ==========================================
 function animate() {
     requestAnimationFrame(animate);
     const time = clock.getElapsedTime();
@@ -601,108 +594,69 @@ function animate() {
     parallaxGroup.position.x = -mouse.currentX * 0.5;
     parallaxGroup.position.y = -mouse.currentY * 0.5;
 
-    if (currentState === STATES.STAGE_1_INTRO || currentState === STATES.STAGE_2_FOCUS) {
-        if (models.storage && models.storage.userData.inner) {
+    if ((currentState === STATES.STAGE_1_INTRO || currentState === STATES.STAGE_2_FOCUS) && models.storage && models.sensor) {
+        if (models.storage.userData.inner) {
             models.storage.userData.inner.position.y = Math.sin(time * 1.5) * 0.1;
             models.storage.userData.inner.rotation.z = Math.cos(time * 1.2) * 0.02;
         }
-        if (models.sensor && models.sensor.userData.inner) {
+        if (models.sensor.userData.inner) {
             models.sensor.userData.inner.position.y = Math.cos(time * 1.8) * 0.12;
             models.sensor.userData.inner.rotation.x = Math.sin(time * 1.1) * 0.02;
         }
     }
 
-   // ----------------------------------------------------
-    // 🌟 新增：3D 射线悬浮检测与平滑缩放 (支持 Stage 1 & Stage 2)
-    // ----------------------------------------------------
-    // 判断条件放宽，包含 STAGE_1 和 STAGE_2
+    // 悬浮检测与缩放
     if ((currentState === STATES.STAGE_1_INTRO || currentState === STATES.STAGE_2_FOCUS) && models.storage && models.sensor) {
         raycaster.setFromCamera(raycastMouse, camera);
-
         const intersectsStorage = raycaster.intersectObject(models.storage.userData.inner, true);
         const intersectsSensor = raycaster.intersectObject(models.sensor.userData.inner, true);
-
-        let targetScaleStorage = 1.0;
-        let targetScaleSensor = 1.0;
-        let isHovering = false;
-        let hoveredWafer = null; // 记录当前悬浮的是哪个晶圆
-
+        let targetScaleStorage = 1.0, targetScaleSensor = 1.0, isHovering = false, hoveredWafer = null;
         if (intersectsStorage.length > 0) hoveredWafer = 'storage';
         else if (intersectsSensor.length > 0) hoveredWafer = 'sensor';
 
-        // 🌟 分阶段处理悬浮逻辑与文案
         if (currentState === STATES.STAGE_1_INTRO) {
-            // 【阶段 1】：两个晶圆都可以互动
             if (hoveredWafer === 'storage') { targetScaleStorage = 1.08; isHovering = true; }
             else if (hoveredWafer === 'sensor') { targetScaleSensor = 1.08; isHovering = true; }
-
             document.body.style.cursor = isHovering ? 'pointer' : 'default';
-
             if (cursorHint) {
                 cursorHint.classList.add('is-visible');
-                if (isHovering) {
-                    cursorHint.classList.add('is-hovering');
-                    cursorHint.innerText = "点击进入特写";
-                } else {
-                    cursorHint.classList.remove('is-hovering');
-                    cursorHint.innerText = "移动鼠标探索晶圆";
-                }
+                if (isHovering) { cursorHint.classList.add('is-hovering'); cursorHint.innerText = "点击进入特写"; }
+                else { cursorHint.classList.remove('is-hovering'); cursorHint.innerText = "移动鼠标探索晶圆"; }
             }
-        } 
-        else if (currentState === STATES.STAGE_2_FOCUS) {
-            // 【阶段 2】：只有当前被选中的那片晶圆可以互动
-            if (hoveredWafer === selectedWafer) { 
-                if (selectedWafer === 'storage') targetScaleStorage = 1.05; // 聚焦时微微放大即可
+        } else if (currentState === STATES.STAGE_2_FOCUS) {
+            if (hoveredWafer === selectedWafer) {
+                if (selectedWafer === 'storage') targetScaleStorage = 1.05;
                 if (selectedWafer === 'sensor') targetScaleSensor = 1.05;
-                isHovering = true; 
+                isHovering = true;
             }
-
             document.body.style.cursor = isHovering ? 'pointer' : 'default';
-
             if (cursorHint) {
                 cursorHint.classList.add('is-visible');
-                if (isHovering) {
-                    cursorHint.classList.add('is-hovering');
-                    cursorHint.innerText = "点击或向下滚动看参数"; // 🎯 悬浮在高亮晶圆上
-                } else {
-                    cursorHint.classList.remove('is-hovering');
-                    cursorHint.innerText = "向上滚动可返回"; // 🎯 鼠标移开时提示返回
-                }
+                if (isHovering) { cursorHint.classList.add('is-hovering'); cursorHint.innerText = "点击或向下滚动看参数"; }
+                else { cursorHint.classList.remove('is-hovering'); cursorHint.innerText = "向上滚动可返回"; }
             }
         }
-
-        // 应用插值缩放，极度丝滑
         models.storage.userData.inner.scale.lerp(new THREE.Vector3(targetScaleStorage, targetScaleStorage, targetScaleStorage), 0.1);
         models.sensor.userData.inner.scale.lerp(new THREE.Vector3(targetScaleSensor, targetScaleSensor, targetScaleSensor), 0.1);
-
     } else if (models.storage && models.sensor) {
-        // 【阶段 3】或者其他情况：取消一切缩放和提示
         models.storage.userData.inner.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
         models.sensor.userData.inner.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
         document.body.style.cursor = 'default';
-
         if (cursorHint) cursorHint.classList.remove('is-visible');
     }
 
-    // ----------------------------------------------------
-    // 🌟 3. 核心 3D->2D 投影引擎
-    // ----------------------------------------------------
+    // 3D 到 2D 投影
     if (isAssetsLoaded && camera) {
         trackingPoints.forEach(point => {
             const parentLayer = point.domElement?.closest('.ui-layer');
-            // 只运算可见阶段，极大节省性能
             if (point.domElement && parentLayer && window.getComputedStyle(parentLayer).opacity > 0) {
                 const targetMesh = point.meshRef();
                 if (targetMesh) {
                     projectedPosition.copy(point.localPos);
                     targetMesh.localToWorld(projectedPosition);
                     projectedPosition.project(camera);
-
-                    // 映射到屏幕中心偏移坐标系
                     const x = (projectedPosition.x * window.innerWidth * 0.5);
                     const y = -(projectedPosition.y * window.innerHeight * 0.5);
-
-                    // 应用硬件加速的位移，死死黏在模型表面
                     point.domElement.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
                 }
             }
@@ -713,19 +667,15 @@ function animate() {
 }
 animate();
 
-window.addEventListener('mousemove', (event) => {
-    raycastMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    raycastMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+// 启动开场动画（如果 loader 元素存在）
+if (loaderW && tagcloudW && counterEl) {
+    initLoaderAnimation();
+} else {
+    console.warn('Loader DOM elements missing, skipping intro animation');
+    if (webglContainer) webglContainer.style.opacity = '1';
+    if (isAssetsLoaded) resetToStage1();
+}
 
-    if (cursorHint) {
-        gsap.to(cursorHint, {
-            x: event.clientX + 15,
-            y: event.clientY + 15,
-            duration: 0.15,
-            ease: "power2.out"
-        });
-    }
-});
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
