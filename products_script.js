@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import { initGlobalNav } from './nav.js';
@@ -142,90 +143,50 @@ function configureTexture(texture, repeatX = 1, repeatY = 1, offsetX = 0, offset
     texture.magFilter = THREE.LinearFilter;
 }
 
-// ==========================================
-// 🌟 开场动画相关变量与函数
-// ==========================================
-let spinCycleRunning = false;
-let spinCycleInterrupted = false;
-let animationStartTime = null;
-let currentSpinCycleTl = null;
-
-function playSpinCycle() {
-    if (spinCycleRunning) return;
-    spinCycleRunning = true;
-    spinCycleInterrupted = false;
-
-    const circles = document.querySelectorAll('.loader__circle:nth-child(-n+6)');
-    currentSpinCycleTl = gsap.to(circles, {
-        rotationX: "+=360",
-        duration: 3.5,
-        ease: 'power3.inOut',
-        stagger: 0.12,
-        onComplete: () => {
-            spinCycleRunning = false;
-            if (!spinCycleInterrupted && !isAssetsLoaded) {
-                playSpinCycle();
-            } else if (isAssetsLoaded) {
-                forceEnterMainScene();
-            }
-        }
-    });
-}
-
-function forceEnterMainScene() {
-    // 如果还未到最短显示时间（0.6秒），则延迟执行
-    if (animationStartTime) {
-        const elapsed = performance.now() - animationStartTime;
-        const minDisplayTime = 2000; // 毫秒
-        if (elapsed < minDisplayTime) {
-            const delay = minDisplayTime - elapsed;
-            setTimeout(() => {
-                if (spinCycleRunning) {
-                    spinCycleInterrupted = true;
-                    if (currentSpinCycleTl) currentSpinCycleTl.kill();
-                    spinCycleRunning = false;
-                }
-                enterMainScene();
-            }, delay);
-            return;
-        }
-    }
-
-    // 已满足最小时长，立即中断并进入
-    if (spinCycleRunning) {
-        spinCycleInterrupted = true;
-        if (currentSpinCycleTl) currentSpinCycleTl.kill();
-        spinCycleRunning = false;
-    }
-    enterMainScene();
-}
-
-function enterMainScene() {
-    const enterTl = gsap.timeline();
-    enterTl
-        .to(loaderW, { scale: 0.5, opacity: 0, filter: 'blur(10px)', duration: 1.0, ease: 'power3.inOut' }, 0)
-        .to(tagcloudW, { opacity: 0, duration: 0.8 }, 0)
-        .to(webglContainer, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0)
-        .call(() => {
-            if (loaderW) loaderW.style.display = 'none';
-            if (tagcloudW) tagcloudW.style.display = 'none';
-            if (webglContainer) webglContainer.style.opacity = '1';
-            resetToStage1();
-        }, null, 0.8);
-}
+// 🌟 只需要两个变量
+let loaderTimeline = null;
 
 function initLoaderAnimation() {
+    // 1. 设置初始状态
     gsap.set('.loader__circle', { opacity: 0, filter: 'blur(16px)', rotationZ: -45 });
     gsap.set('.tagcloud--item', { opacity: 0 });
 
-    const introTl = gsap.timeline({ delay: 0.5 });
-    introTl
-        .to('.loader__circle', { opacity: 1, filter: 'blur(0px)', duration: 2.5, ease: 'expo.out', stagger: { each: 0.15, from: "end" } }, 0)
-        .to('.tagcloud--item', { opacity: 1, duration: 1, stagger: 0.2 }, 1)
+    // 2. 创建主时间轴
+    loaderTimeline = gsap.timeline({
+        onComplete: () => {
+            // 如果动画跑完了，资源还没好，就原地循环最后一段
+            if (!isAssetsLoaded) {
+                loaderTimeline.play("loop-point");
+            } else {
+                enterMainScene();
+            }
+        }
+    });
+
+    loaderTimeline
+        // A. 登场动画
+        .to('.loader__circle', { opacity: 1, filter: 'blur(0px)', duration: 2, ease: 'expo.out', stagger: 0.1 }, 0)
+        .to('.tagcloud--item', { opacity: 1, duration: 1, stagger: 0.1 }, 0.5)
+        
+        // B. 循环旋转动画 (打个标签方便跳转)
+        .addLabel("loop-point")
+        .to('.loader__circle', { 
+            rotationX: "+=360", 
+            duration: 3, 
+            ease: 'power3.inOut', 
+            stagger: 0.1 
+        });
+}
+
+function enterMainScene() {
+    gsap.timeline()
+        .to(loaderW, { scale: 0.8, opacity: 0, filter: 'blur(10px)', duration: 0.8, ease: 'power2.in' })
+        .to(tagcloudW, { opacity: 0, duration: 0.5 }, "<")
+        .to(webglContainer, { opacity: 1, duration: 1 }, "-=0.3")
         .call(() => {
-            animationStartTime = performance.now();
-            playSpinCycle();
-        }, null, 1.0);
+            loaderW.style.display = 'none';
+            resetToStage1();
+        });
 }
 
 // ==========================================
@@ -234,23 +195,29 @@ function initLoaderAnimation() {
 const counterObj = { val: 0 };
 const manager = new THREE.LoadingManager();
 
-manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+// 2. 核心加载进度逻辑 (加回 Counter)
+manager.onProgress = (url, itemsLoaded, itemsTotal) => {
     const targetPercent = (itemsLoaded / itemsTotal) * 100;
+
+    // 使用 GSAP 平滑滚动数字
     gsap.to(counterObj, {
         val: targetPercent,
-        duration: 0.3,
+        duration: 0.4,
         ease: "power1.out",
         onUpdate: () => {
             if (counterEl) {
+                // 自动补零并更新 DOM
                 counterEl.innerText = `[ ${Math.round(counterObj.val).toString().padStart(3, '0')} ]`;
             }
-            if (targetPercent >= 99.9 && !isAssetsLoaded) {
-                setTimeout(() => {
-                    if (!isAssetsLoaded) {
-                        isAssetsLoaded = true;
-                        forceEnterMainScene();
-                    }
-                }, 50);
+        },
+        onComplete: () => {
+            // 当进度达到 100% 且动画队列允许时进入主场景
+            if (targetPercent >= 100) {
+                isAssetsLoaded = true;
+                // 如果开场动画已经跑完了一轮（不再 Active），直接切场
+                if (loaderTimeline && !loaderTimeline.isActive()) {
+                    enterMainScene();
+                }
             }
         }
     });
@@ -258,6 +225,12 @@ manager.onProgress = function (url, itemsLoaded, itemsTotal) {
 
 // 让所有 loader 共用同一个 manager
 const gltfLoaderWithManager = new GLTFLoader(manager);
+// 🌟 初始化 DRACOLoader
+const dracoLoader = new DRACOLoader();
+// 🌟 设置解码器路径 (推荐使用官方 CDN，免去本地配置静态资源的麻烦)
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+// dracoLoader.setDecoderConfig({ type: 'js' }); // 可选：强制使用 JS 解码，但默认的 WASM 更快
+gltfLoaderWithManager.setDRACOLoader(dracoLoader); // 将 DRACOLoader 挂载到 GLTFLoader 上
 const textureLoaderWithManager = new THREE.TextureLoader(manager);
 const hdrLoaderWithManager = new HDRLoader(manager).setDataType(THREE.FloatType);
 
@@ -395,7 +368,6 @@ Promise.all([
     });
 
     isAssetsLoaded = true;
-    forceEnterMainScene(); // 确保资源加载完成后立即尝试进入（会检查最小时长）
 }).catch(error => { console.error("加载错误:", error); });
 
 // ==========================================
@@ -460,14 +432,6 @@ function goToStage3() {
     tl.to([mainWrapper, backBtn], {
         opacity: 1, duration: 1, pointerEvents: 'auto',
         onStart: () => { document.body.style.overflow = 'auto'; },
-        onComplete: () => {
-            const specsEl = document.querySelector('.specs-w');
-            if (specsEl) {
-                void specsEl.offsetHeight;
-                specsEl.style.backdropFilter = 'blur(24.9px)';
-                requestAnimationFrame(() => { specsEl.style.backdropFilter = ''; });
-            }
-        }
     }, "-=1");
 
     ScrollTrigger.getAll().forEach(t => t.kill());

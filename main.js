@@ -17,6 +17,7 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { Line2 } from 'three/addons/lines/Line2.js'; // 🌟 新增 Line2 引入
 import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'; // 🌟 新增 GPGPU 渲染器
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -708,6 +709,12 @@ function enterMainScene() {
 // ==========================================
 const textureLoader = new THREE.TextureLoader(manager);
 const gltfLoader = new GLTFLoader(manager);
+// 🌟 初始化 DRACOLoader
+const dracoLoader = new DRACOLoader();
+// 🌟 设置解码器路径 (推荐使用官方 CDN，免去本地配置静态资源的麻烦)
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+// dracoLoader.setDecoderConfig({ type: 'js' }); // 可选：强制使用 JS 解码，但默认的 WASM 更快
+gltfLoader.setDRACOLoader(dracoLoader); // 将 DRACOLoader 挂载到 GLTFLoader 上
 const hdrLoader = new HDRLoader(manager).setDataType(THREE.FloatType);
 
 // 🌟 1. 按新路径加载素材

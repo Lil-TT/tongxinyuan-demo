@@ -459,7 +459,6 @@ body {
 
 .specs-w {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
     border-top: 1px solid var(--color-border);
     border-left: 1px solid var(--color-border);
     /* 把背景色和毛玻璃移到伪元素里 */
@@ -467,18 +466,13 @@ body {
     position: relative;
     overflow: hidden;
     border-top-left-radius: 24px;
-    z-index: 10;
-    /* 确保它在 Canvas 之上 */
-    -webkit-backdrop-filter: blur(25px);
-    backdrop-filter: blur(25px);
-    border-top-left-radius: 24px;
     /* 保持和父元素一样的圆角 */
-
-    transform: translateZ(0);
-    /* 强制开启硬件加速 */
-    will-change: transform, backdrop-filter;
-    /* 提前告知浏览器 */
-    backface-visibility: hidden;
+    grid-column-gap: 0rem;
+    grid-row-gap: 0rem;
+    -webkit-backdrop-filter: blur(.5rem) !important;
+    backdrop-filter: blur(.5rem) !important;
+    background-color: #ffffff05;
+    width: 69.2rem;
 }
 
 .specs-w>div:not(.specs__title-w) {
@@ -491,8 +485,6 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 1;
-    transition: background 0.3s ease;
 }
 
 .specs__title-w {
@@ -500,7 +492,6 @@ body {
     border-right: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
     position: relative;
-    z-index: 2;
 }
 
 /* 网格排版 */
