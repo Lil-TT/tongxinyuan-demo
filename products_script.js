@@ -32,12 +32,6 @@ const mainWrapper = document.getElementById('main-wrapper');
 const backBtn = document.getElementById('reset-btn');
 const cursorHint = document.getElementById('cursor-hint');
 
-// ==========================================
-// 🌟 开场动画 DOM 元素
-// ==========================================
-const loaderW = document.querySelector('.loader-w');
-const tagcloudW = document.querySelector('.tagcloud-w');
-const counterEl = document.getElementById('counter');
 const webglContainer = document.querySelector('.webgl-container');
 
 initGlobalNav();
@@ -143,85 +137,10 @@ function configureTexture(texture, repeatX = 1, repeatY = 1, offsetX = 0, offset
     texture.magFilter = THREE.LinearFilter;
 }
 
-// 🌟 只需要两个变量
-let loaderTimeline = null;
-
-function initLoaderAnimation() {
-    // 1. 设置初始状态
-    gsap.set('.loader__circle', { opacity: 0, filter: 'blur(16px)', rotationZ: -45 });
-    gsap.set('.tagcloud--item', { opacity: 0 });
-
-    // 2. 创建主时间轴
-    loaderTimeline = gsap.timeline({
-        onComplete: () => {
-            // 如果动画跑完了，资源还没好，就原地循环最后一段
-            if (!isAssetsLoaded) {
-                loaderTimeline.play("loop-point");
-            } else {
-                enterMainScene();
-            }
-        }
-    });
-
-    loaderTimeline
-        // A. 登场动画
-        .to('.loader__circle', { opacity: 1, filter: 'blur(0px)', duration: 2, ease: 'expo.out', stagger: 0.1 }, 0)
-        .to('.tagcloud--item', { opacity: 1, duration: 1, stagger: 0.1 }, 0.5)
-        
-        // B. 循环旋转动画 (打个标签方便跳转)
-        .addLabel("loop-point")
-        .to('.loader__circle', { 
-            rotationX: "+=360", 
-            duration: 3, 
-            ease: 'power3.inOut', 
-            stagger: 0.1 
-        });
-}
-
-function enterMainScene() {
-    gsap.timeline()
-        .to(loaderW, { scale: 0.8, opacity: 0, filter: 'blur(10px)', duration: 0.8, ease: 'power2.in' })
-        .to(tagcloudW, { opacity: 0, duration: 0.5 }, "<")
-        .to(webglContainer, { opacity: 1, duration: 1 }, "-=0.3")
-        .call(() => {
-            loaderW.style.display = 'none';
-            resetToStage1();
-        });
-}
-
 // ==========================================
-// 🌟 加载管理器与进度跟踪
+// 🌟 加载管理器（无 UI 进度条）
 // ==========================================
-const counterObj = { val: 0 };
 const manager = new THREE.LoadingManager();
-
-// 2. 核心加载进度逻辑 (加回 Counter)
-manager.onProgress = (url, itemsLoaded, itemsTotal) => {
-    const targetPercent = (itemsLoaded / itemsTotal) * 100;
-
-    // 使用 GSAP 平滑滚动数字
-    gsap.to(counterObj, {
-        val: targetPercent,
-        duration: 0.4,
-        ease: "power1.out",
-        onUpdate: () => {
-            if (counterEl) {
-                // 自动补零并更新 DOM
-                counterEl.innerText = `[ ${Math.round(counterObj.val).toString().padStart(3, '0')} ]`;
-            }
-        },
-        onComplete: () => {
-            // 当进度达到 100% 且动画队列允许时进入主场景
-            if (targetPercent >= 100) {
-                isAssetsLoaded = true;
-                // 如果开场动画已经跑完了一轮（不再 Active），直接切场
-                if (loaderTimeline && !loaderTimeline.isActive()) {
-                    enterMainScene();
-                }
-            }
-        }
-    });
-};
 
 // 让所有 loader 共用同一个 manager
 const gltfLoaderWithManager = new GLTFLoader(manager);
@@ -368,6 +287,8 @@ Promise.all([
     });
 
     isAssetsLoaded = true;
+    if (webglContainer) webglContainer.style.opacity = '1';
+    resetToStage1();
 }).catch(error => { console.error("加载错误:", error); });
 
 // ==========================================
@@ -417,6 +338,16 @@ function resetToStage1() {
     tl.add(buildGuideLineAnim('#intro-ui'), "-=0.2");
 }
 
+/** Chromium：祖先从 opacity:0 淡入后，backdrop-filter 有时要到下一次重绘才生效；强制刷新毛玻璃层 */
+function refreshBackdropPanels() {
+    document.querySelectorAll('.specs-w__frost, .stage2-glass-card__frost').forEach((el) => {
+        el.style.setProperty('filter', 'opacity(1)');
+        void el.getBoundingClientRect();
+        el.style.removeProperty('filter');
+        void el.getBoundingClientRect();
+    });
+}
+
 function goToStage3() {
     currentState = STATES.STAGE_3_SPECS;
     const activeModel = selectedWafer === 'storage' ? models.storage : models.sensor;
@@ -432,6 +363,11 @@ function goToStage3() {
     tl.to([mainWrapper, backBtn], {
         opacity: 1, duration: 1, pointerEvents: 'auto',
         onStart: () => { document.body.style.overflow = 'auto'; },
+        onComplete: () => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(refreshBackdropPanels);
+            });
+        },
     }, "-=1");
 
     ScrollTrigger.getAll().forEach(t => t.kill());
@@ -471,8 +407,15 @@ document.querySelectorAll('.wafer-hotspot').forEach(hotspot => {
             .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
 
         const stage2Ui = document.getElementById('stage2-ui');
-        if (stage2Ui) tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
-        stage2Timeout = setTimeout(() => { if (currentState === STATES.STAGE_2_FOCUS) goToStage3(); }, 10000);
+        if (stage2Ui) {
+            tl.to(stage2Ui, {
+                opacity: 1, duration: 1, ease: "power2.out",
+                onComplete: () => {
+                    requestAnimationFrame(() => requestAnimationFrame(refreshBackdropPanels));
+                },
+            }, 0.5);
+        }
+        stage2Timeout = setTimeout(() => { if (currentState === STATES.STAGE_2_FOCUS) goToStage3(); }, 300000);
     });
 });
 
@@ -506,9 +449,16 @@ window.addEventListener('click', () => {
             .to(models.sensor.rotation, { x: sensorTarget.rx, y: sensorTarget.ry, z: sensorTarget.rz, duration: 1.5 }, 0)
             .to(models.sensor.scale, { x: sensorTarget.scale, y: sensorTarget.scale, z: sensorTarget.scale, duration: 1.5 }, 0);
 
-        const stage2Ui = document.getElementById('stage2-ui');
-        if (stage2Ui) tl.to(stage2Ui, { opacity: 1, duration: 1, ease: "power2.out" }, 0.5);
-        stage2Timeout = setTimeout(() => { if (currentState === STATES.STAGE_2_FOCUS) goToStage3(); }, 10000);
+        const stage2UiEl = document.getElementById('stage2-ui');
+        if (stage2UiEl) {
+            tl.to(stage2UiEl, {
+                opacity: 1, duration: 1, ease: "power2.out",
+                onComplete: () => {
+                    requestAnimationFrame(() => requestAnimationFrame(refreshBackdropPanels));
+                },
+            }, 0.5);
+        }
+        stage2Timeout = setTimeout(() => { if (currentState === STATES.STAGE_2_FOCUS) goToStage3(); }, 300000);
     } else if (currentState === STATES.STAGE_2_FOCUS) {
         if (selectedWafer === 'storage' && intersectsStorage.length > 0) {
             clearTimeout(stage2Timeout);
@@ -631,17 +581,11 @@ function animate() {
 }
 animate();
 
-// 启动开场动画（如果 loader 元素存在）
-if (loaderW && tagcloudW && counterEl) {
-    initLoaderAnimation();
-} else {
-    console.warn('Loader DOM elements missing, skipping intro animation');
-    if (webglContainer) webglContainer.style.opacity = '1';
-    if (isAssetsLoaded) resetToStage1();
-}
-
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    if (currentState === STATES.STAGE_3_SPECS) {
+        requestAnimationFrame(refreshBackdropPanels);
+    }
 });

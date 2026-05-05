@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { initGlobalNav } from './nav.js';
+import { initXMRModal } from './xmr-modal.js';
 import Waves from './Waves.js'; // 🌟 引入你的波纹类
 import GUI from 'lil-gui';
 
@@ -16,12 +17,12 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { Line2 } from 'three/addons/lines/Line2.js'; // 🌟 新增 Line2 引入
-import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'; // 🌟 新增 GPGPU 渲染器
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
 initGlobalNav();
+initXMRModal();
 
 // ==========================================
 // 1. 全局变量声明与 3D 场景初始化
@@ -201,13 +202,8 @@ sphericalGridMesh.computeLineDistances();
 sphericalGridGroup.add(sphericalGridMesh);
 
 // ==========================================
-// 1.4 深空几何引力波与智能粒子 frist_try::#505c61 second_try:: #213245
+// 1.4 深空几何引力波系统
 // ==========================================
-let particlesGroup = new THREE.Group();
-particlesGroup.visible = false;
-particlesGroup.position.z = -20;
-scene3D.add(particlesGroup);
-
 // 生成一张程序化噪点贴图 (代替外部加载，不会跨域报错)
 function createNoiseTexture() {
   const size = 256;
@@ -233,278 +229,6 @@ waveSystem.instance.rotation.set(
 );
 waveSystem.instance.visible = false; // 先隐藏
 scene3D.add(waveSystem.instance);
-
-// ==========================================
-// 🌟 替换为 GPGPU Simplex Particles 系统
-// ==========================================
-const simplexChunk = `
-    vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-    float mod289(float x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-    vec4 permute(vec4 x) { return mod289(((x*34.0)+10.0)*x); }
-    float permute(float x) { return mod289(((x*34.0)+10.0)*x); }
-    vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-    float taylorInvSqrt(float r) { return 1.79284291400159 - 0.85373472095314 * r; }
-    vec4 grad4(float j, vec4 ip) {
-        const vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);
-        vec4 p,s;
-        p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;
-        p.w = 1.5 - dot(abs(p.xyz), ones.xyz);
-        s = vec4(lessThan(p, vec4(0.0)));
-        p.xyz = p.xyz + (s.xyz*2.0 - 1.0) * s.www;
-        return p;
-    }
-    float simplexNoise4d(vec4 v) {
-        const vec4  C = vec4( 0.138196601125011, 0.276393202250021, 0.414589803375032, -0.447213595499958);
-        vec4 i  = floor(v + dot(v, vec4(0.309016994374947)) );
-        vec4 x0 = v -   i + dot(i, C.xxxx);
-        vec4 i0;
-        vec3 isX = step( x0.yzw, x0.xxx );
-        vec3 isYZ = step( x0.zww, x0.yyz );
-        i0.x = isX.x + isX.y + isX.z;
-        i0.yzw = 1.0 - isX;
-        i0.y += isYZ.x + isYZ.y;
-        i0.zw += 1.0 - isYZ.xy;
-        i0.z += isYZ.z;
-        i0.w += 1.0 - isYZ.z;
-        vec4 i3 = clamp( i0, 0.0, 1.0 );
-        vec4 i2 = clamp( i0-1.0, 0.0, 1.0 );
-        vec4 i1 = clamp( i0-2.0, 0.0, 1.0 );
-        vec4 x1 = x0 - i1 + C.xxxx;
-        vec4 x2 = x0 - i2 + C.yyyy;
-        vec4 x3 = x0 - i3 + C.zzzz;
-        vec4 x4 = x0 + C.wwww;
-        i = mod289(i);
-        float j0 = permute( permute( permute( permute(i.w) + i.z) + i.y) + i.x);
-        vec4 j1 = permute( permute( permute( permute ( i.w + vec4(i1.w, i2.w, i3.w, 1.0 )) + i.z + vec4(i1.z, i2.z, i3.z, 1.0 )) + i.y + vec4(i1.y, i2.y, i3.y, 1.0 )) + i.x + vec4(i1.x, i2.x, i3.x, 1.0 ));
-        vec4 ip = vec4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;
-        vec4 p0 = grad4(j0,   ip);
-        vec4 p1 = grad4(j1.x, ip);
-        vec4 p2 = grad4(j1.y, ip);
-        vec4 p3 = grad4(j1.z, ip);
-        vec4 p4 = grad4(j1.w, ip);
-        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w; p4 *= taylorInvSqrt(dot(p4,p4));
-        vec3 m0 = max(0.6 - vec3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
-        vec2 m1 = max(0.6 - vec2(dot(x3,x3), dot(x4,x4)            ), 0.0);
-        m0 = m0 * m0; m1 = m1 * m1;
-        return 49.0 * ( dot(m0*m0, vec3( dot( p0, x0 ), dot( p1, x1 ), dot( p2, x2 ))) + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;
-    }
-`;
-
-// 构建与 main.js 匹配的模拟运行上下文
-const glMock = {
-  renderer: { instance: renderer3D },
-  sizes: { width: window.innerWidth, height: window.innerHeight, pixelRatio: renderer3D.getPixelRatio() },
-  time: { delta: 16 },
-  audio: { frequencies: { synthLoop: { current: 0 } } }
-};
-
-class GPGPUParticles {
-  constructor() {
-    this.gl = glMock;
-    this.instance = new THREE.Group();
-    this.settings = { scale: 0.5 };
-    this.globalSpeed = 0.01;
-
-    this.baseGeometry = {};
-    this.baseGeometry.instance = new THREE.TorusGeometry(12, this.settings.scale, 64, 10); // 放大尺寸以匹配深空背景
-    this.baseGeometry.count = this.baseGeometry.instance.attributes.position.count;
-
-    this.gpgpu = {};
-    this.gpgpu.size = Math.ceil(Math.sqrt(this.baseGeometry.count));
-    this.gpgpu.computation = new GPUComputationRenderer(this.gpgpu.size, this.gpgpu.size, this.gl.renderer.instance);
-    this.baseParticlesTexture = this.gpgpu.computation.createTexture();
-
-    for (let i = 0; i < this.baseGeometry.count; i++) {
-      this.baseParticlesTexture.image.data[i * 4 + 0] = this.baseGeometry.instance.attributes.position.array[i * 3 + 0] + (2 * Math.random() - 1) * this.settings.scale;
-      this.baseParticlesTexture.image.data[i * 4 + 1] = this.baseGeometry.instance.attributes.position.array[i * 3 + 1] + (2 * Math.random() - 1) * this.settings.scale;
-      this.baseParticlesTexture.image.data[i * 4 + 2] = this.baseGeometry.instance.attributes.position.array[i * 3 + 2] + (2 * Math.random() - 1) * this.settings.scale;
-      this.baseParticlesTexture.image.data[i * 4 + 3] = Math.random();
-    }
-
-    this.shader = `
-            ${simplexChunk}
-            uniform float uTime;
-            uniform float uTransition;
-            uniform float uDeltaTime;
-            uniform float uFrequency;
-            uniform sampler2D uBasePositions;
-            const float FLOWFIELD_SIZE = .25;
-            const float FLOWFIELD_STRENGTH = 5.;
-
-            void main() {
-                vec2 uv = gl_FragCoord.xy / resolution.xy;
-                vec4 particleTexture = texture2D(uParticles, uv);
-                vec4 basePositionTexture = texture2D(uBasePositions, uv);
-
-                if (particleTexture.a >= 1.0) {
-                    particleTexture.a = fract(particleTexture.a);
-                    particleTexture.xyz = basePositionTexture.xyz;
-                } else {
-                    vec3 flowField = vec3(
-                        simplexNoise4d(vec4(particleTexture.xyz * FLOWFIELD_SIZE + 0.0, uTime * 0.25)),
-                        simplexNoise4d(vec4(particleTexture.xyz * FLOWFIELD_SIZE + 1.0, uTime * 0.25)),
-                        simplexNoise4d(vec4(particleTexture.xyz * FLOWFIELD_SIZE + 2.0, uTime * 0.25))
-                    );
-
-                    flowField = normalize(flowField);
-                    particleTexture.xyz += flowField * (FLOWFIELD_STRENGTH + (1.0 - uTransition) * 10.) * uDeltaTime;
-                    particleTexture.a += uDeltaTime;
-                }
-                gl_FragColor = mix(particleTexture, basePositionTexture, pow(uFrequency * 15., 3.0));
-            }
-        `;
-
-    this.gpgpu.particlesVariable = this.gpgpu.computation.addVariable('uParticles', this.shader, this.baseParticlesTexture);
-    this.gpgpu.computation.setVariableDependencies(this.gpgpu.particlesVariable, [this.gpgpu.particlesVariable]);
-    this.gpgpu.particlesVariable.material.uniforms.uTime = new THREE.Uniform(0.0);
-    this.gpgpu.particlesVariable.material.uniforms.uDeltaTime = new THREE.Uniform(0.0);
-    this.gpgpu.particlesVariable.material.uniforms.uBasePositions = new THREE.Uniform(this.baseParticlesTexture);
-    this.gpgpu.particlesVariable.material.uniforms.uTransition = new THREE.Uniform(0.0);
-    this.gpgpu.particlesVariable.material.uniforms.uFrequency = new THREE.Uniform(0.0);
-    this.gpgpu.computation.init();
-
-    this.particles = {};
-    this.particlesUvArray = new Float32Array(this.baseGeometry.count * 2);
-    this.randomArray = new Float32Array(this.baseGeometry.count);
-
-    for (let y = 0; y < this.gpgpu.size; y++) {
-      for (let x = 0; x < this.gpgpu.size; x++) {
-        const i = y * this.gpgpu.size + x;
-        const i2 = i * 2;
-        this.particlesUvArray[i2 + 0] = (x + 0.5) / this.gpgpu.size;
-        this.particlesUvArray[i2 + 1] = (y + 0.5) / this.gpgpu.size;
-        this.randomArray[i] = Math.random();
-      }
-    }
-
-    this.particles.geometry = new THREE.BufferGeometry();
-    this.particles.geometry.setDrawRange(0, this.baseGeometry.count);
-    this.particles.geometry.setAttribute('aParticlesUv', new THREE.BufferAttribute(this.particlesUvArray, 2));
-    this.particles.geometry.setAttribute('aRandom', new THREE.BufferAttribute(this.randomArray, 1));
-
-    this.particles.material = new THREE.ShaderMaterial({
-      transparent: true,
-      uniforms: {
-        uSize: new THREE.Uniform(0.115),
-        uResolution: new THREE.Uniform(new THREE.Vector2(this.gl.sizes.width * this.gl.sizes.pixelRatio, this.gl.sizes.height * this.gl.sizes.pixelRatio)),
-        uParticlesTexture: new THREE.Uniform(null),
-        uProgress: new THREE.Uniform(1),
-        uTransition: new THREE.Uniform(0.0),
-        uCircleSize: new THREE.Uniform(0.025),
-        uBokeh: new THREE.Uniform(0.0),
-        uFocusDistance: new THREE.Uniform(7.5),
-        uFocusRange: new THREE.Uniform(0.25),
-        uCloseUpBokeh: new THREE.Uniform(0.0),
-        COLOR_HIGHLIGHT: new THREE.Uniform(new THREE.Color(0xb2e0ff)),
-      },
-      vertexShader: `
-                uniform vec2 uResolution;
-                uniform float uSize;
-                uniform sampler2D uParticlesTexture;
-                uniform float uProgress;
-                uniform float uTransition;
-                uniform float uFocusDistance;
-                uniform float uFocusRange;
-                uniform float uCloseUpBokeh;
-                attribute vec2 aParticlesUv;
-                attribute float aRandom;
-                
-                varying vec4 vColor;
-                varying vec2 vParticlesUv;
-                varying float vLifeSize;
-                varying float vDepth;
-
-                void main() {
-                    vec4 particle = texture2D(uParticlesTexture, aParticlesUv);
-                    particle.z += 15.0 * smoothstep(0.9, 1.0, aRandom) * smoothstep(0.0, 0.3, uProgress);
-                    vec4 modelPosition = modelMatrix * vec4(particle.xyz, 1.0);
-                    vec4 viewPosition = viewMatrix * modelPosition;
-                    vec4 projectedPosition = projectionMatrix * viewPosition;
-                    gl_Position = projectedPosition;
-
-                    float lifeIn = smoothstep(0.0, 0.1, particle.a);
-                    float lifeOut = 1.0 - smoothstep(0.9, 1.0, particle.a);
-                    float lifeSize = min(lifeIn, lifeOut) * smoothstep(0.2, 1.0, uTransition);
-                
-                    gl_PointSize = aRandom * lifeSize * uSize * uResolution.y;
-                    vColor = vec4(vec3(1.0), particle.a);
-                    vParticlesUv = aParticlesUv;
-                    vLifeSize = lifeSize;
-                    vDepth = pow(min(abs((uFocusDistance + viewPosition.z - uCloseUpBokeh * 5.0) * uFocusRange), 1.0), 2.0);
-                }
-            `,
-      fragmentShader: `
-                varying vec4 vColor;
-                varying vec2 vParticlesUv;
-                varying float vLifeSize;
-                varying float vDepth;
-                uniform sampler2D uParticlesTexture;
-                uniform float uCircleSize;
-                uniform float uBokeh;
-                uniform float uCloseUpBokeh;
-                uniform float uTransition;
-                uniform vec3 COLOR_HIGHLIGHT;
-
-                void main() {
-                    vec4 particle = texture2D(uParticlesTexture, vParticlesUv);
-                    float distanceToCenter = length(gl_PointCoord - 0.5);
-                    if(distanceToCenter > 0.5) discard;
-
-                    float mask = 1.0 - distance(distanceToCenter, 0.25 / 8.0) * 8.0;
-                    mask = smoothstep(1.0 - uCircleSize - pow(uBokeh, 2.0) * 8.0 * vDepth, 1.0, mask);
-                    vec4 color = vec4(COLOR_HIGHLIGHT, max(mask, 0.25 * step(distanceToCenter, 0.25 / 8.0)) * vLifeSize);
-                    color.a -= (pow(uBokeh, 0.5) * (0.75 + vDepth * 0.25));
-                    color.a = max(color.a, 0.0);
-
-                    gl_FragColor = color;
-                }
-            `,
-    });
-
-    this.particles.material.depthWrite = false;
-    this.mesh = new THREE.Points(this.particles.geometry, this.particles.material);
-    this.mesh.rotation.x = -Math.PI * 0.425;
-    this.mesh.position.set(0, 0, 0);
-    this.mesh.renderOrder = 2;
-    this.instance.add(this.mesh);
-  }
-
-  triggerWave(_direction = 1, _duration = 4.1, _ease = 'power2.inOut', _animateStrength = true, _delay = 0) {
-    if (_direction === 1) {
-      gsap.fromTo(this.mesh.scale, { x: 0.1, y: 0.1, z: 0.1 }, { x: 1, y: 1, z: 1, delay: _delay, duration: _duration, ease: _ease });
-      gsap.fromTo(this.particles.material.uniforms.uTransition, { value: 0.0 }, { value: 1.0, delay: _delay, duration: _duration, ease: _ease });
-      if (_animateStrength) {
-        gsap.fromTo(this.gpgpu.particlesVariable.material.uniforms.uTransition, { value: 0.0 }, { value: 1.0, delay: _delay, duration: _duration, ease: _ease });
-      }
-    } else {
-      gsap.fromTo(this.mesh.scale, { x: 1, y: 1, z: 1 }, { x: 0.1, y: 0.1, z: 0.1, duration: 2.75, ease: 'expo.inOut' });
-      gsap.fromTo(this.particles.material.uniforms.uTransition, { value: 1.0 }, { value: 0, duration: 2.75, ease: 'expo.inOut' });
-      if (_animateStrength) {
-        gsap.fromTo(this.gpgpu.particlesVariable.material.uniforms.uTransition, { value: 1.0 }, { value: 0.0, duration: 2.75, ease: 'expo.inOut' });
-      }
-    }
-  }
-
-  resize() {
-    this.particles.material.uniforms.uResolution.value.set(this.gl.sizes.width * this.gl.sizes.pixelRatio, this.gl.sizes.height * this.gl.sizes.pixelRatio);
-  }
-
-  update(deltaMs) {
-    this.gl.time.delta = deltaMs;
-    this.gpgpu.particlesVariable.material.uniforms.uTime.value += (this.gl.time.delta * 0.0125 - this.gl.audio.frequencies.synthLoop.current * this.gl.time.delta * 0.0005) * (0.25 + this.globalSpeed * 0.75);
-    this.gpgpu.particlesVariable.material.uniforms.uDeltaTime.value = this.gl.time.delta * 0.001 * (0.25 + this.globalSpeed * 0.75);
-    this.gpgpu.computation.compute();
-    this.particles.material.uniforms.uParticlesTexture.value = this.gpgpu.computation.getCurrentRenderTarget(this.gpgpu.particlesVariable).texture;
-    this.mesh.rotation.z += this.gl.time.delta * 0.00075 * this.globalSpeed;
-  }
-}
-
-let sandParticlesSystem = new GPGPUParticles();
-particlesGroup.add(sandParticlesSystem.instance);
-
-// 提前触发展开动画使其待命
-sandParticlesSystem.triggerWave(1, 3);
 
 // ==========================================
 // 1.5 发光虚线特效系统 (替换原流星雨)
@@ -691,7 +415,6 @@ function enterMainScene() {
     .to(caseLid.rotation, { x: lidInitialRot - Math.PI / 2, duration: 1.5, ease: "power2.out" }, "openLid")
     .addLabel("deepSpace", "openLid+=1.0")
     .set(sphericalGridGroup, { visible: true }, "deepSpace")
-    .set(particlesGroup, { visible: true }, "deepSpace")
     .set(circlesSystem.instances, { visible: true }, "deepSpace") // 🌟 揭示发光虚线系统
     .set(earbudLeft, { visible: false }, 0.5)
     .add(() => {
@@ -1167,21 +890,6 @@ function initScrollTimeline() {
     ease: "power1.inOut"
   }, "stage1");
 
-  tl.to(sandParticlesSystem.instance.position, {
-    y: -6.5,   // 沙粒系统与海面保持同步下沉，增强整体感
-    z: 9.5,    // 微微向镜头推近，但比海面更近一点，制造层次感      
-    duration: 4,
-    ease: "power1.inOut"
-  }, "stage1");
-
-  tl.to(sandParticlesSystem.instance.rotation, {
-    x: -Math.PI / 4, // 沙粒系统微微仰起，与海面保持一致的倾斜角度
-    z: 0,   // 配合盒子和海面的 z 轴微扭转，沙粒系统也做轻微侧倾
-    duration: 4,
-    ease: "power1.inOut"
-  }, "stage1");
-
-
   tl.to(waveSystem.instance.position, {
     y: -7.5,   // 海面随着滚轮缓缓下沉，给晶圆腾出视觉空间
     duration: 1.5,
@@ -1506,18 +1214,6 @@ function animate() {
   mouseState.currentX += (mouseState.targetX - mouseState.currentX) * 0.05;
   mouseState.currentY += (mouseState.targetY - mouseState.currentY) * 0.05;
 
-  particlesGroup.children.forEach(child => {
-    if (child.material && child.material.uniforms && child.material.uniforms.uTime && child.isMesh) {
-      child.material.uniforms.uTime.value = time_bg;
-    }
-  });
-
-  // 🌟 驱动新的 GPGPU 粒子系统
-  if (typeof sandParticlesSystem !== 'undefined') {
-    // GPGPU 的计算强依赖毫秒(ms)，所以需要把 delta(秒) 乘 1000
-    sandParticlesSystem.update(delta * 1000);
-  }
-
   if (typeof sphericalGridGroup !== 'undefined' && sphericalGridGroup) {
     sphericalGridGroup.rotation.y = (time * 1) + bgScrollObj.offset;
     sphericalGridGroup.position.y = Math.sin(time * 2) * 15;
@@ -1540,15 +1236,6 @@ window.addEventListener('resize', () => {
   camera3D.updateProjectionMatrix();
   if (window.gridLineMat) window.gridLineMat.resolution.set(w, h);
   if (circlesSystem) circlesSystem.material.resolution.set(w, h);
-
-  // 🌟 同步更新 GPGPU 尺寸与分辨率
-  if (typeof glMock !== 'undefined') {
-    glMock.sizes.width = w;
-    glMock.sizes.height = h;
-  }
-  if (typeof sandParticlesSystem !== 'undefined') {
-    sandParticlesSystem.resize();
-  }
 });
 
 // ==========================================

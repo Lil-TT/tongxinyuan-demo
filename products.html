@@ -17,32 +17,8 @@
 </head>
 
 <body>
-    <div class="loader-w">
-        <div class="loader">
-            <div class="loader__circle">
-                <div class="loader__dot dot1"></div>
-            </div>
-            <div class="loader__circle">
-                <div class="loader__dot dot2"></div>
-            </div>
-            <div class="loader__circle">
-                <div class="loader__dot dot3"></div>
-            </div>
-            <div class="loader__circle"></div>
-            <div class="loader__circle"></div>
-            <div class="loader__circle core"></div>
-        </div>
-    </div>
-
-    <div class="tagcloud-w">
-        <span class="tagcloud--item top-right">[ WAFER ]</span>
-        <span class="tagcloud--item center-left">[ EUTRONSENSE ]</span>
-        <span class="tagcloud--item bottom-center">[ TMR GMR AMR ]</span>
-        <span id="counter">[ 000 ]</span>
-    </div>
-
-    <a href="#" id="reset-btn" class="back-btn">返回选型</a>
-    <div id="cursor-hint" class="cursor-hint">点击晶圆探索</div>
+    <a href="#" id="reset-btn" class="back-btn" data-i18n-key="products.backBtn">返回选型</a>
+    <div id="cursor-hint" class="cursor-hint" data-i18n-key="products.cursorHint">点击晶圆探索</div>
 
     <div class="webgl-container" id="webgl-mount">
         <div class="wafer-glow"></div>
@@ -58,8 +34,8 @@
         <div class="projected-anchor wafer-hotspot" id="track-storage" data-target="storage">
             <div class="callout callout-tr param">
                 <div class="callout-text param-text text-left">
-                    <div class="text-3xl font-light mb-1 text-white">xMR薄膜晶圆</div>
-                    <span class="text-xs text-gray-400 mt-2 block">xMR各种结构和性能的晶圆。<br />6 吋、8 吋、12 吋</span>
+                    <div class="text-3xl font-light mb-1 text-white" data-i18n-key="products.introStorageTitle">xMR薄膜晶圆</div>
+                    <span class="text-xs text-gray-400 mt-2 block" data-i18n-html="products.introStorageDescHtml">xMR各种结构和性能的晶圆。<br />8 吋、12 吋</span>
                 </div>
                 <svg class="guide-line tr-line" viewBox="0 0 450 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="448" cy="1.5" r="2" fill="#fff" opacity="0.8" />
@@ -73,8 +49,8 @@
         <div class="projected-anchor wafer-hotspot" id="track-sensor" data-target="sensor">
             <div class="callout callout-cl param left">
                 <div class="callout-text param-text text-right">
-                    <div class="text-3xl font-light mb-1 text-white">MEMS传感核心</div>
-                    <span class="text-xs text-gray-400 mt-2 block">xMR桥路结构</span>
+                    <div class="text-3xl font-light mb-1 text-white" data-i18n-html="products.introSensorTitleHtml">MEMS传感核心</div>
+                    <span class="text-xs text-gray-400 mt-2 block" data-i18n-key="products.introSensorDesc">xMR桥路结构</span>
                 </div>
                 <svg class="guide-line cl-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="2" cy="1.5" r="2" fill="#fff" opacity="0.8" />
@@ -88,8 +64,8 @@
         <div class="projected-anchor wafer-hotspot" id="track-mems" data-target="sensor">
             <div class="callout callout-br param">
                 <div class="callout-text param-text text-left">
-                    <div class="text-3xl font-light mb-1 text-white">MEMS悬臂梁</div>
-                    <span class="text-xs text-gray-400 mt-2 block">单材料/双材料悬臂梁基本结构<br />xMR-悬臂梁组合基础结构</span>
+                    <div class="text-3xl font-light mb-1 text-white" data-i18n-html="products.introMemsTitleHtml">MEMS悬臂梁</div>
+                    <span class="text-xs text-gray-400 mt-2 block" data-i18n-html="products.introMemsDescHtml">单材料/双材料悬臂梁基本结构<br />xMR-悬臂梁组合基础结构</span>
                 </div>
                 <svg class="guide-line br-line" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="279.5" cy="1.5" r="2" fill="#fff" opacity="0.8" />
@@ -104,40 +80,123 @@
     <div id="stage2-ui" class="ui-layer"
         style="opacity: 0; pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 45;">
 
-        <div id="stage2-content-sensor" class="stage2-content" style="display: none;">
-            <div class="stage2-title-left">
-                <h1 class="text-6xl font-medium mb-4 text-white tracking-widest">xMR</h1>
-                <h2 class="text-5xl text-gray-300 tracking-widest">传感核心晶圆</h2>
+        <div id="stage2-content-sensor" class="stage2-content stage2-content--sensor" style="display: none;">
+            <div class="stage2-left-panel">
+                <header class="stage2-heading">
+                    <h1 class="stage2-heading__title">xMR</h1>
+                    <p class="stage2-heading__subtitle" data-i18n-key="products.stage2SubtitleSensor">传感核心晶圆</p>
+                </header>
+                <ul class="stage2-feature-list" data-i18n-aria-label="products.ariaSensorList" aria-label="传感核心晶圆规格类型">
+                    <li class="stage2-feature-list__item">
+                        <span class="stage2-feature-list__lbl">TMR</span>
+                        <span class="stage2-feature-list__val" data-i18n-key="products.stage2ValTmr">TMR+MEMS悬臂梁结构</span>
+                    </li>
+                    <li class="stage2-feature-list__item">
+                        <span class="stage2-feature-list__lbl">AMR</span>
+                        <span class="stage2-feature-list__val" data-i18n-key="products.stage2ValBridge">半桥、全桥结构</span>
+                    </li>
+                    <li class="stage2-feature-list__item">
+                        <span class="stage2-feature-list__lbl">GMR</span>
+                        <span class="stage2-feature-list__val" data-i18n-key="products.stage2ValBridge">半桥、全桥结构</span>
+                    </li>
+                </ul>
             </div>
-            <div class="stage2-specs-right">
-                <div class="spec-row">
-                    <span class="lbl">TMR</span><span class="val">TMR+MEMS悬臂梁结构</span>
+
+            <aside class="stage2-glass-card" data-i18n-aria-label="products.ariaSensorCard" aria-label="TMR 传感核心测试性能摘要">
+                <div class="stage2-glass-card__frost" aria-hidden="true"></div>
+                <div class="stage2-glass-card__inner">
+                    <div style="height: 10px;"></div>
+                    <div class="stage2-glass-card__row">
+                        <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;&nbsp;  MR (TYP) &nbsp;&nbsp;&nbsp;&nbsp; ]</div>
+                        <div class="stage2-glass-card__value">180.16%</div>
+                    </div>
+                    <div class="stage2-glass-card__row">
+                        <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;&nbsp;  HC (TYP) &nbsp;&nbsp;&nbsp;&nbsp; ]</div>
+                        <div class="stage2-glass-card__value">0.17[Oe]</div>
+                    </div>
+                    <div class="stage2-glass-card__row">
+                        <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;&nbsp;  HE (TYP) &nbsp;&nbsp;&nbsp;&nbsp; ]</div>
+                        <div class="stage2-glass-card__value">0.94[Oe]</div>
+                    </div>
+                    <div class="stage2-glass-card__row">
+                        <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;&nbsp;  生产规格 &nbsp;&nbsp;&nbsp;&nbsp; ]</div>
+                        <div class="stage2-glass-card__value" data-i18n-key="products.valWaferSize">8吋、12吋</div>
+                    </div>
+                    <div style="height: 10px;"></div>
                 </div>
-                <div class="spec-row">
-                    <span class="lbl">AMR</span><span class="val">半桥、全桥结构</span>
-                </div>
-                <div class="spec-row">
-                    <span class="lbl">GMR</span><span class="val">半桥、全桥结构</span>
-                </div>
-            </div>
+            </aside>
         </div>
 
-        <div id="stage2-content-storage" class="stage2-content" style="display: none;">
-            <div class="stage2-title-left">
-                <h1 class="text-6xl font-medium mb-4 text-white tracking-widest">xMR</h1>
-                <h2 class="text-5xl text-gray-300 tracking-widest">薄膜晶圆</h2>
+        <div id="stage2-content-storage" class="stage2-content stage2-content--storage" style="display: none;">
+            <div class="stage2-left-panel">
+                <header class="stage2-heading">
+                    <h1 class="stage2-heading__title">xMR</h1>
+                    <p class="stage2-heading__subtitle" data-i18n-key="products.stage2SubtitleStorage">薄膜晶圆</p>
+                </header>
+                <ul class="stage2-feature-list" data-i18n-aria-label="products.ariaStorageList" aria-label="薄膜晶圆规格类型">
+                    <li class="stage2-feature-list__item">
+                        <span class="stage2-feature-list__lbl">TMR</span>
+                        <span class="stage2-feature-list__val" data-i18n-key="products.stage2ValTmr">TMR+MEMS悬臂梁结构</span>
+                    </li>
+                    <li class="stage2-feature-list__item">
+                        <span class="stage2-feature-list__lbl">AMR</span>
+                        <span class="stage2-feature-list__val" data-i18n-key="products.stage2ValBridge">半桥、全桥结构</span>
+                    </li>
+                    <li class="stage2-feature-list__item">
+                        <span class="stage2-feature-list__lbl">GMR</span>
+                        <span class="stage2-feature-list__val" data-i18n-key="products.stage2ValBridge">半桥、全桥结构</span>
+                    </li>
+                </ul>
             </div>
-            <div class="stage2-specs-right">
-                <div class="spec-row">
-                    <span class="lbl">TMR</span><span class="val">TMR+MEMS悬臂梁结构</span>
+
+            <aside class="stage2-glass-card stage2-glass-card--storage" data-i18n-aria-label="products.ariaStorageCard" aria-label="TMR 薄膜晶圆主要磁性性能摘要">
+                <div class="stage2-glass-card__frost" aria-hidden="true"></div>
+                <div class="stage2-glass-card__inner stage2-glass-card__inner--storage">
+                    <div style="height: 10px;"></div>
+                    <div class="stage2-glass-card__hero">
+                        <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;&nbsp; MR (TYP) &nbsp;&nbsp;&nbsp;&nbsp; ]</div>
+                        <div class="stage2-glass-card__value">230%</div>
+                        <div class="stage2-glass-card__note" data-i18n-key="products.noteTunable">性能可调</div>
+                    </div>
+                    <div class="stage2-glass-card__grid">
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp; RA (存储类) (TYP) &nbsp;&nbsp;&nbsp; ]</div>
+                            <div class="stage2-glass-card__value">1.5<span class="stage2-glass-card__unit"> [Ω·sq]</span></div>
+                            <div class="stage2-glass-card__note" data-i18n-key="products.noteTunable">性能可调</div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;  RA (传感类) (TYP) &nbsp;&nbsp;&nbsp; ]</div>
+                            <div class="stage2-glass-card__value">15K<span class="stage2-glass-card__unit"> [Ω·sq]</span></div>
+                            <div class="stage2-glass-card__note" data-i18n-key="products.noteTunable">性能可调</div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp;  Hc &nbsp;&nbsp;&nbsp; ]</div>
+                            <div class="stage2-glass-card__value">0.14<span class="stage2-glass-card__unit"> [Oe]</span></div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp; He &nbsp;&nbsp;&nbsp;]</div>
+                            <div class="stage2-glass-card__value">0.83<span class="stage2-glass-card__unit"> [Oe]</span></div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp; Hex &nbsp;&nbsp;&nbsp;]</div>
+                            <div class="stage2-glass-card__value">5124<span class="stage2-glass-card__unit"> [Oe]</span></div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp; Uniformity &nbsp;&nbsp;&nbsp;]</div>
+                            <div class="stage2-glass-card__value">1.47<span class="stage2-glass-card__unit"> %</span></div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp; 温度系数 &nbsp;&nbsp;&nbsp;]</div>
+                            <div class="stage2-glass-card__value">0.07<span class="stage2-glass-card__unit"> %/K</span></div>
+                        </div>
+                        <div class="stage2-glass-card__cell">
+                            <div class="stage2-glass-card__label">[&nbsp;&nbsp;&nbsp; 生产规格 &nbsp;&nbsp;&nbsp;]</div>
+                            <div class="stage2-glass-card__value" data-i18n-key="products.valWaferSize">8吋、12吋</div>
+                        </div>
+                    </div>
+                    <div style="height: 10px;"></div>
                 </div>
-                <div class="spec-row">
-                    <span class="lbl">AMR</span><span class="val">半桥、全桥结构</span>
-                </div>
-                <div class="spec-row">
-                    <span class="lbl">GMR</span><span class="val">半桥、全桥结构</span>
-                </div>
-            </div>
+            </aside>
         </div>
 
     </div>
@@ -149,14 +208,13 @@
                     <h1 class="section__title">
                         <div class="u-lines-split">EUTRONSENSE</div>
                         <div class="u-lines-split text-[#2449FF]" style="-webkit-text-stroke: 0;">TMR</div>
-                        <div class="u-lines-split">隧道磁电阻</div>
+                        <div class="u-lines-split" data-i18n-key="products.heroTunnel">隧道磁电阻</div>
                     </h1>
                     <div class="section__desc">
-                        <p>湖北元臻微电独有的TMR技术已建立完整体系<br />
+                        <p data-i18n-html="products.heroDescHtml">湖北元臻微电独有的TMR技术已建立完整体系<br />
                             拥有大动态高线性度、高灵敏度高精度特性<br />
                             MR达到136%-241%，均匀性≤1.5%<br />
                             可根据客户需求进行定制化制备</p>
-                        </p>
                         <p class="text-xs font-mono text-gray-500 tracking-widest">[ Launching Phase 2026 ]</p>
                         <p class="price">Custom</p>
                     </div>
@@ -167,14 +225,15 @@
         <main class="content-layout">
             <div id="grid-storage" class="wafer-data-section">
                 <div class="specs-w">
+                    <div class="specs-w__frost" aria-hidden="true"></div>
                     <div class="specs__title-w" style="padding:8rem 3rem !important;">
-                        <div class="text-[#2449FF] text-6xl md:text-6xl mb-2">TMR晶圆</div>
-                        <div class="text-[#2449FF] text-6xl md:text-6xl">主要磁性性能</div>
+                        <div class="text-[#2449FF] text-6xl md:text-6xl mb-2" data-i18n-key="products.gridStorageTitle1">TMR晶圆</div>
+                        <div class="text-[#2449FF] text-6xl md:text-6xl" data-i18n-key="products.gridStorageTitle2">主要磁性性能</div>
                     </div>
                     <div>
                         <div class="specs__header">[ MR (TYP) ]</div>
                         <div class="specs__data">230<span class="specs__unit">%</span></div>
-                        <div class="specs__footer">性能可调</div>
+                        <div class="specs__footer" data-i18n-key="products.specsFooter">性能可调</div>
                     </div>
                     <div>
                         <svg class="grid__smallcircle anchor-center" viewBox="0 0 500 500" fill="none">
@@ -185,12 +244,12 @@
                     <div>
                         <div class="specs__header">[ RA (存储类) (TYP) ]</div>
                         <div class="specs__data">1.5<span class="specs__unit">[Ω·sq]</span></div>
-                        <div class="specs__footer">性能可调</div>
+                        <div class="specs__footer" data-i18n-key="products.specsFooter">性能可调</div>
                     </div>
                     <div>
                         <div class="specs__header">[ RA (传感类) (TYP) ]</div>
                         <div class="specs__data">15K<span class="specs__unit">[Ω·sq]</span></div>
-                        <div class="specs__footer">性能可调</div>
+                        <div class="specs__footer" data-i18n-key="products.specsFooter">性能可调</div>
                     </div>
                     <div>
                         <div class="specs__header">[ Hc ]</div>
@@ -218,8 +277,8 @@
                     </div>
                     <div></div>
                     <div style="grid-column: span 2; align-items: flex-start; padding-left: 11.5rem;">
-                        <div class="specs__header">[ 生产规格 ]</div>
-                        <div class="specs__data">8<span class="specs__unit">吋、</span> 12<span
+                        <div class="specs__header" data-i18n-key="products.specProdHeader">[ 生产规格 ]</div>
+                        <div class="specs__data" data-i18n-html="products.specProdDataHtml">8<span class="specs__unit">吋、</span> 12<span
                                 class="specs__unit">吋</span></div>
                     </div>
                 </div>
@@ -227,9 +286,10 @@
 
             <div id="grid-sensor" class="wafer-data-section">
                 <div class="specs-w">
+                    <div class="specs-w__frost" aria-hidden="true"></div>
                     <div class="specs__title-w" style="padding: 8rem 3rem !important;">
-                        <div class="text-[#2449FF] text-6xl md:text-6xl mb-2">TMR传感核心</div>
-                        <div class="text-[#2449FF] text-6xl md:text-6xl">测试性能</div>
+                        <div class="text-[#2449FF] text-6xl md:text-6xl mb-2" data-i18n-key="products.gridSensorTitle1">TMR传感核心</div>
+                        <div class="text-[#2449FF] text-6xl md:text-6xl" data-i18n-key="products.gridSensorTitle2">测试性能</div>
                     </div>
                     <div>
                         <div class="specs__header">[ MR (TYP) ]</div>
@@ -250,9 +310,9 @@
                         <div class="specs__data">0.94<span class="specs__unit">[Oe]</span></div>
                     </div>
                     <div>
-                        <div class="specs__header">[ 生产规格 ]</div>
-                        <div class="specs__data">6<span class="specs__unit">吋、</span> 8<span
-                                class="specs__unit">吋、</span> 12<span class="specs__unit">吋</span></div>
+                        <div class="specs__header" data-i18n-key="products.specProdHeader">[ 生产规格 ]</div>
+                        <div class="specs__data" data-i18n-html="products.specProdDataSensorHtml">8<span class="specs__unit">吋</span> 12<span
+                                class="specs__unit">吋</span></div>
                     </div>
                     <div>
                         <svg class="grid__bigcircle anchor-bottom-left" fill="none" viewBox="0 0 500 500">
@@ -269,19 +329,19 @@
                 <ul role="list" class="features-w">
                     <li class="features">
                         <div class="feature__label">EUTRONSENSE</div>
-                        <div class="feature__desc">元臻微电独有的TMR技术</div>
+                        <div class="feature__desc" data-i18n-key="products.featureDesc1">元臻微电独有的TMR技术</div>
                     </li>
                     <li class="features">
                         <div class="feature__label">LINEARIYT</div>
-                        <div class="feature__desc">拥有大动态高线性度</div>
+                        <div class="feature__desc" data-i18n-key="products.featureDesc2">拥有大动态高线性度</div>
                     </li>
                     <li class="features">
                         <div class="feature__label">SENSITIVITY</div>
-                        <div class="feature__desc">高灵敏度</div>
+                        <div class="feature__desc" data-i18n-key="products.featureDesc3">高灵敏度</div>
                     </li>
                     <li class="features">
                         <div class="feature__label">PRECISION</div>
-                        <div class="feature__desc">高精度</div>
+                        <div class="feature__desc" data-i18n-key="products.featureDesc4">高精度</div>
                     </li>
                 </ul>
             </div>

@@ -4,7 +4,6 @@
     --color-border: rgba(255, 255, 255, 0.1);
     --color-blue: #41a5ff;
     --cell-height: 330px;
-    ;
 }
 
 body {
@@ -16,143 +15,18 @@ body {
     overflow: hidden;
 }
 
-/* =========================================
-   Stage 1: Loading 样式
-   ========================================= */
-.loader-w {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.loader {
-  width: 50rem;
-  height: 50rem;
-  transform-style: preserve-3d;
-  transform: perspective(60rem);
-}
-
-.loader__circle {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle at 0%, rgba(65, 165, 255, 0.1), rgba(65, 165, 255, 0.01));
-  box-shadow: 0 1px 0 hsla(0, 0%, 100%, 0.2), inset 0 1px 0 rgba(65, 165, 255, 0.1);
-  transform-style: preserve-3d;
-  will-change: transform, opacity, filter;
-  transform-origin: 50% 50%;
-}
-
-.loader__circle:nth-child(1) {
-  inset: 0rem;
-}
-
-.loader__circle:nth-child(2) {
-  inset: 4rem;
-}
-
-.loader__circle:nth-child(3) {
-  inset: 8rem;
-}
-
-.loader__circle:nth-child(4) {
-  inset: 12rem;
-}
-
-.loader__circle:nth-child(5) {
-  inset: 16rem;
-}
-
-.loader__circle:nth-child(6) {
-  inset: 20rem;
-  border: none;
-  box-shadow: none;
-  background: rgba(65, 165, 255, 0.05);
-}
-
-.loader__dot {
-  width: 6px;
-  height: 6px;
-  position: absolute;
-  top: 0%;
-  left: 50%;
-  background: #41a5ff;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 12px 2px rgba(65, 165, 255, 0.8);
-  transform-style: preserve-3d;
-}
-
-.dot1 {
-  margin-left: -20%;
-  margin-top: 5%;
-}
-
-.dot2 {
-  margin-left: 25%;
-  margin-top: 8%;
-}
-
-.dot3 {
-  margin-left: -10%;
-  margin-top: 2%;
-}
-
-.tagcloud-w {
-  position: fixed;
-  inset: 0;
-  z-index: 51;
-  pointer-events: none;
-}
-
-.tagcloud--item {
-  position: absolute;
-  font-size: 11px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.top-right {
-  top: 30%;
-  right: 25%;
-}
-
-.center-left {
-  top: 50%;
-  left: 25%;
-}
-
-.bottom-center {
-  bottom: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-#counter {
-  position: absolute;
-  bottom: 40px;
-  right: 40px;
-  font-size: 14px;
-  letter-spacing: 2px;
-}
-
 .webgl-container {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100vh;
-    z-index: 0;          /* 关键：降低层级，确保 loader 能盖住它 */
+    z-index: 0;
     pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;          /* 初始完全透明，开场时不显示 */
-    transition: opacity 0.5s ease; /* 平滑过渡 */
+    opacity: 1;
 }
 
 .wafer-glow {
@@ -257,30 +131,166 @@ body {
 
 /* 2. 左中侧发散 (MEMS传感核心) - SVG尖端圆在 (279.5, 100) */
 .callout-cl .guide-line {
-    left: -500px;
+    left: -430px;
     top: 450px;
     width: 300px;
     height: 150px;
 }
 
 .callout-cl .param-text {
-    right: 520px;
+    right: 450px;
     top: 420px;
     transform-origin: right center;
 }
 
 /* 3. 右下角发散 (MEMS悬臂梁) - SVG尖端圆在 (1.5, 100) */
 .callout-br .guide-line {
-    left: -350px;
+    left: -300px;
     top: 500px;
     width: 300px;
     height: 150px;
 }
 
 .callout-br .param-text {
-    left: -50px;
+    left: 0px;
     top: 455px;
     transform-origin: left center;
+}
+
+/* ---------- Intro 三条指示线：仅按视口高度微调 top（锚点在屏幕中心，矮屏纵向收紧） ---------- */
+@media (max-height: 900px) {
+
+    .callout-tr .guide-line {
+        top: -200px;
+    }
+
+    .callout-tr .param-text {
+        top: -220px;
+    }   
+
+    .callout-cl .guide-line {
+        top: 400px;
+    }
+
+    .callout-cl .param-text {
+        top: 370px;
+    }
+
+    .callout-br .guide-line {
+        top: 400px;
+    }
+
+    .callout-br .param-text {
+        top: 355px;
+    }
+}
+
+@media (max-height: 820px) {
+
+    .callout-tr .guide-line {
+        top: -200px;
+    }
+
+    .callout-tr .param-text {
+        top: -220px;
+    }
+
+    .callout-cl .guide-line {
+        top: 300px;
+    }
+
+    .callout-cl .param-text {
+        top: 270px;
+    }
+
+    .callout-br .guide-line {
+        top: 350px;
+    }
+
+    .callout-br .param-text {
+        top: 307px;
+    }
+}
+
+@media (max-height: 720px) {
+
+    .callout-tr .guide-line {
+        top: -200px;
+    }
+
+    .callout-tr .param-text {
+        top: -220px;
+    }
+
+    .callout-cl .guide-line {
+        top: 275px;
+    }
+
+    .callout-cl .param-text {
+        top: 245px;
+    }
+
+    .callout-br .guide-line {
+        top: 315px;
+    }
+
+    .callout-br .param-text {
+        top: 272px;
+    }
+}
+
+@media (max-height: 640px) {
+
+    .callout-tr .guide-line {
+        top: -230px;
+    }
+
+    .callout-tr .param-text {
+        top: -250px;
+    }
+
+    .callout-cl .guide-line {
+        top: 340px;
+    }
+
+    .callout-cl .param-text {
+        top: 310px;
+    }
+
+    .callout-br .guide-line {
+        top: 375px;
+    }
+
+    .callout-br .param-text {
+        top: 332px;
+    }
+}
+
+@media (max-height: 560px) {
+
+    .callout-tr .guide-line {
+        top: -210px;
+    }
+
+    .callout-tr .param-text {
+        top: -230px;
+    }
+
+    .callout-cl .guide-line {
+        top: 305px;
+    }
+
+    .callout-cl .param-text {
+        top: 275px;
+    }
+
+    .callout-br .guide-line {
+        top: 335px;
+    }
+
+    .callout-br .param-text {
+        top: 292px;
+    }
 }
 
 /* 🌟 核心：0x0 大小的锚点容器，初始定在屏幕正中央 */
@@ -332,47 +342,288 @@ body {
     font-family: 'AlibabaPuHuiTi', sans-serif;
 }
 
-/* 左侧大标题 */
-.stage2-title-left {
+/* Stage 2 · 传感核心 / 薄膜晶圆：左侧标题 + 特性列表（对齐设计稿） */
+.stage2-content--sensor .stage2-left-panel,
+.stage2-content--storage .stage2-left-panel {
     position: absolute;
     top: 50%;
-    left: 9%;
+    left: clamp(2rem, 9vw, 7rem);
     transform: translateY(-50%);
     text-align: left;
+    max-width: min(28rem, 42vw);
+    pointer-events: none;
 }
 
-/* 右侧参数列表 */
-.stage2-specs-right {
-    position: absolute;
-    top: 50%;
-    right: 9%;
-    transform: translateY(-50%);
+.stage2-heading {
+    margin: 0 0 2.25rem;
+}
+
+.stage2-heading__title {
+    margin: 0 0 0.6rem;
+    font-size: clamp(2.75rem, 5.5vw, 4rem);
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 0.18em;
+    line-height: 1.05;
+}
+
+.stage2-heading__subtitle {
+    margin: 0;
+    font-size: clamp(1.65rem, 3.2vw, 2.65rem);
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.62);
+    letter-spacing: 0.14em;
+    line-height: 1.25;
+}
+
+.stage2-feature-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 40px;
-    /* 行间距 */
+    gap: 1.65rem;
 }
 
-.spec-row {
+.stage2-feature-list__item {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    gap: 1rem 1.35rem;
 }
 
-.spec-row .lbl {
-    font-size: 1.4rem;
-    font-weight: 300;
+.stage2-feature-list__lbl {
+    flex: 0 0 3.25rem;
+    font-size: 1.05rem;
+    font-weight: 600;
     color: #ffffff;
-    width: 80px;
-    /* 固定宽度，让右侧文字严格对齐 */
-    letter-spacing: 1px;
+    letter-spacing: 0.06em;
 }
 
-.spec-row .val {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    letter-spacing: 0.5px;
-    padding-left: 20px;
+.stage2-feature-list__val {
+    flex: 1;
+    font-size: 0.875rem;
     font-weight: 300;
+    color: rgba(255, 255, 255, 0.52);
+    letter-spacing: 0.04em;
+    line-height: 1.55;
+}
+
+@media (max-width: 1024px) {
+
+    .stage2-content--sensor .stage2-left-panel,
+    .stage2-content--storage .stage2-left-panel {
+        left: 1.5rem;
+        max-width: calc(100% - 3rem);
+    }
+
+    .stage2-feature-list__lbl {
+        flex: 0 0 2.75rem;
+    }
+}
+
+/* Stage 2 · 传感核心：右侧磨砂卡片 — 与全局导航右侧面板同宽、右边距对齐（nav.css: padding 40px，.navigation 宽 420px） */
+.stage2-glass-card {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    transform: translateY(-50%);
+    width: 420px;
+    max-width: min(420px, calc(100vw - 80px));
+    box-sizing: border-box;
+    border-radius: 20px;
+    border: 1px solid rgba(97, 116, 157, 0.1);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    isolation: isolate;
+    pointer-events: none;
+}
+
+.stage2-glass-card__frost {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: backdrop-filter;
+    -webkit-backdrop-filter: blur(10px);
+    pointer-events: none;
+    /* Rectangle 5 */
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.stage2-glass-card__inner {
+    position: relative;
+    z-index: 1;
+    /* 顶底留白：与参考图一致，不顶边 */
+    padding: 2.75rem 2.25rem 2.75rem;
+    display: flex;
+    flex-direction: column;
+    /* 组与组之间：约 2～2.5 倍数值行高 (24px) */
+    gap: 3.25rem;
+}
+
+.stage2-glass-card__row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    /* 组内：标签与数值，约半行标签高 (14px) */
+    gap: 0.5rem;
+}
+
+.stage2-glass-card__row--footer {
+    padding-top: 0.35rem;
+    margin-top: 0.15rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stage2-glass-card__label {
+    font-weight: 400;
+    font-style: normal;
+    font-size: 0.875rem;
+    line-height: 100%;
+    letter-spacing: 0;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.stage2-glass-card__value {
+    margin: 0;
+    font-weight: 200;
+    font-style: normal;
+    font-size: 1.5rem;
+    line-height: 100%;
+    letter-spacing: 0;
+    text-align: center;
+    color: #ffffff;
+    margin-top: 6px;
+}
+
+/* 薄膜晶圆：更宽的参数卡 + 顶区居中 + 下方双列网格（与页面 grid-storage 数据一致） */
+.stage2-glass-card--storage {
+    width: 520px;
+    max-width: min(520px, calc(100vw - 80px));
+}
+
+.stage2-glass-card__inner--storage {
+    padding: 2.75rem 1.85rem 2.85rem;
+    gap: 2.75rem;
+}
+
+.stage2-glass-card__hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.5rem;
+}
+
+.stage2-glass-card__note {
+    margin: 0;
+    font-weight: 400;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.48);
+}
+
+.stage2-glass-card__hero .stage2-glass-card__note {
+    margin-top: 0.15rem;
+}
+
+.stage2-glass-card__unit {
+    font-weight: 200;
+    font-size: 0.82em;
+    letter-spacing: 0;
+    opacity: 0.95;
+}
+
+.stage2-glass-card__grid {
+    display: grid;
+    /* 左右各占一半列宽（gap 从容器宽度扣除） */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2.25rem;
+    row-gap: 2.35rem;
+    /* 同一行两格高度以较高为准，较短一格垂直居中 */
+    align-items: center;
+    justify-items: stretch;
+}
+
+.stage2-glass-card__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+}
+
+.stage2-glass-card__cell .stage2-glass-card__label,
+.stage2-glass-card__cell .stage2-glass-card__value,
+.stage2-glass-card__cell .stage2-glass-card__note {
+    text-align: center;
+    max-width: 100%;
+}
+
+.stage2-glass-card__cell .stage2-glass-card__value {
+    line-height: 1.15;
+}
+
+@media (max-width: 1024px) {
+    .stage2-glass-card {
+        top: auto;
+        bottom: 5.5rem;
+        right: 40px;
+        transform: none;
+        width: min(420px, calc(100vw - 80px));
+    }
+
+    .stage2-glass-card__inner {
+        padding: 2.25rem 1.5rem 2.25rem;
+        gap: 2.5rem;
+    }
+
+    .stage2-glass-card__row {
+        gap: 0.45rem;
+    }
+
+    .stage2-glass-card--storage {
+        width: min(520px, calc(100vw - 80px));
+    }
+
+    .stage2-glass-card__inner--storage {
+        padding: 2.25rem 1.35rem 2.35rem;
+        gap: 2.25rem;
+    }
+
+    .stage2-glass-card__grid {
+        column-gap: 1.35rem;
+        row-gap: 1.85rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .stage2-glass-card {
+        bottom: 4rem;
+        right: 20px;
+        width: min(420px, calc(100vw - 40px));
+        max-width: min(420px, calc(100vw - 40px));
+    }
+
+    .stage2-glass-card--storage {
+        width: min(520px, calc(100vw - 40px));
+        max-width: min(520px, calc(100vw - 40px));
+    }
+
+    .stage2-glass-card__grid {
+        grid-template-columns: 1fr;
+        row-gap: 1.65rem;
+    }
 }
 
 /* --- 🌟 主内容滚动区 --- */
@@ -436,7 +687,7 @@ body {
 }
 
 .section__desc>p:nth-child(1) {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 300;
 }
 
@@ -461,25 +712,41 @@ body {
     display: grid;
     border-top: 1px solid var(--color-border);
     border-left: 1px solid var(--color-border);
-    /* 把背景色和毛玻璃移到伪元素里 */
     background: transparent;
     position: relative;
     overflow: hidden;
     border-top-left-radius: 24px;
-    /* 保持和父元素一样的圆角 */
     grid-column-gap: 0rem;
     grid-row-gap: 0rem;
-    -webkit-backdrop-filter: blur(.5rem) !important;
-    backdrop-filter: blur(.5rem) !important;
-    background-color: #ffffff05;
-    width: 69.2rem;
+    isolation: isolate;
 }
 
-.specs-w>div:not(.specs__title-w) {
+/* 独立合成层 + backdrop：避免父级 opacity 动画后需选中文字才重绘的 Chromium 问题 */
+.specs-w__frost {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: backdrop-filter;
+    -webkit-backdrop-filter: blur(0.5rem);
+    backdrop-filter: blur(0.5rem);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.specs-w>.specs__title-w,
+.specs-w>div:not(.specs-w__frost):not(.specs__title-w) {
+    position: relative;
+    z-index: 1;
+}
+
+.specs-w>div:not(.specs-w__frost):not(.specs__title-w) {
     height: var(--cell-height);
     border-right: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
-    position: relative;
     padding: 3rem;
     display: flex;
     flex-direction: column;
@@ -500,7 +767,6 @@ body {
     top: 1.5rem;
     left: 1.5rem;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
     letter-spacing: 0.1em;
     font-weight: 200;
 }
@@ -516,7 +782,6 @@ body {
 
 .specs__unit {
     font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.5);
     font-weight: 300;
 }
 
