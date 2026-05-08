@@ -54,8 +54,8 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   border-radius: 1.5rem;
   width: 420px;
   /* 面板宽度 */
-  height: 52px;
-  /* 初始闭合高度 */
+  height: 48px;
+  /* 初始闭合高度（与略小的顶栏触发区匹配） */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -70,7 +70,7 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
+  padding: 12px 0;
   cursor: pointer;
   width: 100%;
 }
@@ -79,8 +79,8 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   font-family: PingFang SC;
   font-weight: 400;
   font-style: Regular;
-  font-size: 0.875rem;
-  letter-spacing: 1px;
+  font-size: 0.8125rem;
+  letter-spacing: 0.85px;
 }
 
 .nav__burger {
@@ -118,11 +118,11 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   margin-top: 50px;
   list-style: none;
   margin: 0;
-  padding: 10px 0 20px 10px;
+  padding: 8px 0 16px 8px;
   /* 留出左边距给圆点 */
   display: flex;
   flex-direction: column;
-  gap: 1.0rem;
+  gap: 0.75rem;
 }
 
 .nav__item {
@@ -138,9 +138,9 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   font-family: PingFang SC;
   font-weight: 400;
   font-style: Regular;
-  font-size: 1.7rem;
+  font-size: 1.2rem;
   line-height: 100%;
-  letter-spacing: 2px;
+  letter-spacing: 1.6px;
   text-decoration: none;
   transition: color 0.4s ease;
   position: relative;
@@ -150,13 +150,13 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   color: #ffffff;
 }
 
-/* 🟢 核心亮点：原版小圆点伪元素生成器 (常驻暗色版) */
+/* 圆点与顶栏「菜单」文案左缘对齐：位移量 = .nav__list 的 padding-left */
 .nav__link::before {
   content: "";
   position: absolute;
   top: 50%;
   left: 0;
-  transform: translate(-15px, -50%) scale(1);
+  transform: translate(-8px, -50%) scale(1);
   /* 默认大小 */
   width: 4px;
   height: 4px;
@@ -172,7 +172,7 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
 .nav__link.w--current::before {
   background-color: #ffffff;
   /* 变成纯白高亮 */
-  transform: translate(-15px, -50%) scale(1.5);
+  transform: translate(-8px, -50%) scale(1.5);
   /* 微微放大1.5倍，增加交互反馈感 */
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
   /* 可选：加一点微弱的发光效果 */
@@ -206,34 +206,34 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   .navigation {
     width: min(380px, calc(100vw - 48px));
     border-radius: 1.25rem;
-    height: 48px;
+    height: 46px;
   }
 
   .nav__header {
-    padding: 13px 0;
+    padding: 11px 0;
   }
 
   .menu__label {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
   }
 
   .nav__list {
-    gap: 1.15rem;
-    padding: 8px 0 18px 8px;
+    gap: 0.95rem;
+    padding: 6px 0 16px 6px;
   }
 
   .nav__link {
-    font-size: clamp(1.625rem, 4vw + 2.8vh + 0.6rem, 2.125rem);
-    letter-spacing: 1px;
+    font-size: clamp(1.45rem, 3.6vw + 2.5vh + 0.5rem, 1.95rem);
+    letter-spacing: 0.9px;
   }
 
   .nav__link::before {
-    transform: translate(-12px, -50%) scale(1);
+    transform: translate(-6px, -50%) scale(1);
   }
 
   .nav__item:hover .nav__link::before,
   .nav__link.w--current::before {
-    transform: translate(-12px, -50%) scale(1.45);
+    transform: translate(-6px, -50%) scale(1.45);
   }
 }
 
@@ -250,12 +250,21 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   }
 
   .nav__list {
-    padding-left: 6px;
-    gap: 1rem;
+    padding-left: 5px;
+    gap: 0.82rem;
   }
 
   .nav__link {
-    font-size: clamp(1.375rem, 5vw + 3.2vh + 0.45rem, 1.875rem);
+    font-size: clamp(1.28rem, 4.6vw + 3vh + 0.4rem, 1.72rem);
+  }
+
+  .nav__link::before {
+    transform: translate(-5px, -50%) scale(1);
+  }
+
+  .nav__item:hover .nav__link::before,
+  .nav__link.w--current::before {
+    transform: translate(-5px, -50%) scale(1.45);
   }
 
   .locale-switcher {
@@ -284,7 +293,7 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   color: rgba(255, 255, 255, 0.92);
   font-family: 'AlibabaPuHuiTi', 'PingFang SC', 'Inter', system-ui, sans-serif;
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 300;
   font-style: normal;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -292,6 +301,11 @@ body { margin: 0; padding: 0; /* 基础重置 */ }
   margin-right: 4.2rem;
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
+}
+
+.locale-switcher--hero-left {
+  right: auto;
+  margin-right: 0;
 }
 
 .locale-switcher:hover {

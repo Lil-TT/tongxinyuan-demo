@@ -279,8 +279,7 @@ Promise.all([
     // 追踪点初始化
     trackingPoints = [
         { elementId: '#track-storage', meshRef: () => models.storage.userData.inner, localPos: new THREE.Vector3(-1.0, 1.5, 0) },
-        { elementId: '#track-sensor', meshRef: () => models.sensor.userData.inner, localPos: new THREE.Vector3(-1.5, 1.0, 0) },
-        { elementId: '#track-mems', meshRef: () => models.sensor.userData.inner, localPos: new THREE.Vector3(1.5, -2.0, 0) }
+        { elementId: '#track-sensor', meshRef: () => models.sensor.userData.inner, localPos: new THREE.Vector3(-1.5, 1.0, 0) }
     ];
     trackingPoints.forEach(point => {
         point.domElement = document.querySelector(point.elementId);

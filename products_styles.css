@@ -143,21 +143,7 @@ body {
     transform-origin: right center;
 }
 
-/* 3. 右下角发散 (MEMS悬臂梁) - SVG尖端圆在 (1.5, 100) */
-.callout-br .guide-line {
-    left: -300px;
-    top: 500px;
-    width: 300px;
-    height: 150px;
-}
-
-.callout-br .param-text {
-    left: 0px;
-    top: 455px;
-    transform-origin: left center;
-}
-
-/* ---------- Intro 三条指示线：仅按视口高度微调 top（锚点在屏幕中心，矮屏纵向收紧） ---------- */
+/* ---------- Intro 两条指示线：仅按视口高度微调 top（锚点在屏幕中心，矮屏纵向收紧） ---------- */
 @media (max-height: 900px) {
 
     .callout-tr .guide-line {
@@ -174,14 +160,6 @@ body {
 
     .callout-cl .param-text {
         top: 370px;
-    }
-
-    .callout-br .guide-line {
-        top: 400px;
-    }
-
-    .callout-br .param-text {
-        top: 355px;
     }
 }
 
@@ -202,14 +180,6 @@ body {
     .callout-cl .param-text {
         top: 270px;
     }
-
-    .callout-br .guide-line {
-        top: 350px;
-    }
-
-    .callout-br .param-text {
-        top: 307px;
-    }
 }
 
 @media (max-height: 720px) {
@@ -228,14 +198,6 @@ body {
 
     .callout-cl .param-text {
         top: 245px;
-    }
-
-    .callout-br .guide-line {
-        top: 315px;
-    }
-
-    .callout-br .param-text {
-        top: 272px;
     }
 }
 
@@ -256,14 +218,6 @@ body {
     .callout-cl .param-text {
         top: 310px;
     }
-
-    .callout-br .guide-line {
-        top: 375px;
-    }
-
-    .callout-br .param-text {
-        top: 332px;
-    }
 }
 
 @media (max-height: 560px) {
@@ -282,14 +236,6 @@ body {
 
     .callout-cl .param-text {
         top: 275px;
-    }
-
-    .callout-br .guide-line {
-        top: 335px;
-    }
-
-    .callout-br .param-text {
-        top: 292px;
     }
 }
 
@@ -342,7 +288,7 @@ body {
     font-family: 'AlibabaPuHuiTi', sans-serif;
 }
 
-/* Stage 2 · 传感核心 / 薄膜晶圆：左侧标题 + 特性列表（对齐设计稿） */
+/* Stage 2 · 传感核心 / 薄膜晶圆：左侧标题（对齐设计稿） */
 .stage2-content--sensor .stage2-left-panel,
 .stage2-content--storage .stage2-left-panel {
     position: absolute;
@@ -361,51 +307,17 @@ body {
 .stage2-heading__title {
     margin: 0 0 0.6rem;
     font-size: clamp(2.75rem, 5.5vw, 4rem);
-    font-weight: 500;
+    font-weight: 300;
     color: #ffffff;
-    letter-spacing: 0.18em;
     line-height: 1.05;
 }
 
 .stage2-heading__subtitle {
     margin: 0;
-    font-size: clamp(1.65rem, 3.2vw, 2.65rem);
+    font-size: clamp(2.75rem, 5.5vw, 4rem);
     font-weight: 300;
-    color: rgba(255, 255, 255, 0.62);
-    letter-spacing: 0.14em;
-    line-height: 1.25;
-}
-
-.stage2-feature-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1.65rem;
-}
-
-.stage2-feature-list__item {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem 1.35rem;
-}
-
-.stage2-feature-list__lbl {
-    flex: 0 0 3.25rem;
-    font-size: 1.05rem;
-    font-weight: 600;
     color: #ffffff;
-    letter-spacing: 0.06em;
-}
-
-.stage2-feature-list__val {
-    flex: 1;
-    font-size: 0.875rem;
-    font-weight: 300;
-    color: rgba(255, 255, 255, 0.52);
-    letter-spacing: 0.04em;
-    line-height: 1.55;
+    line-height: 1.25;
 }
 
 @media (max-width: 1024px) {
@@ -414,10 +326,6 @@ body {
     .stage2-content--storage .stage2-left-panel {
         left: 1.5rem;
         max-width: calc(100% - 3rem);
-    }
-
-    .stage2-feature-list__lbl {
-        flex: 0 0 2.75rem;
     }
 }
 
@@ -468,7 +376,7 @@ body {
 .stage2-glass-card__row {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     text-align: center;
     /* 组内：标签与数值，约半行标签高 (14px) */
     gap: 0.5rem;
@@ -481,12 +389,34 @@ body {
 }
 
 .stage2-glass-card__label {
-    font-weight: 400;
+    font-weight: 300;
     font-style: normal;
-    font-size: 0.875rem;
+    font-size: 1.2rem;
     line-height: 100%;
     letter-spacing: 0;
     color: rgba(255, 255, 255, 0.55);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.stage2-glass-card__label::before,
+.stage2-glass-card__label::after {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.stage2-glass-card__label::before {
+    content: "[";
+    margin-right: 0.35em;
+}
+
+.stage2-glass-card__label::after {
+    content: "]";
+    margin-left: 0.35em;
 }
 
 .stage2-glass-card__value {
@@ -498,7 +428,13 @@ body {
     letter-spacing: 0;
     text-align: center;
     color: #ffffff;
-    margin-top: 6px;
+    margin-top: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+    box-sizing: border-box;
 }
 
 /* 薄膜晶圆：更宽的参数卡 + 顶区居中 + 下方双列网格（与页面 grid-storage 数据一致） */
@@ -515,7 +451,7 @@ body {
 .stage2-glass-card__hero {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     text-align: center;
     gap: 0.5rem;
@@ -523,11 +459,14 @@ body {
 
 .stage2-glass-card__note {
     margin: 0;
-    font-weight: 400;
+    font-weight: 300;
     font-size: 0.75rem;
     line-height: 1.35;
     letter-spacing: 0.02em;
     color: rgba(255, 255, 255, 0.48);
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 .stage2-glass-card__hero .stage2-glass-card__note {
@@ -545,7 +484,7 @@ body {
     display: grid;
     /* 左右各占一半列宽（gap 从容器宽度扣除） */
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 2.25rem;
+    column-gap: 1.25rem;
     row-gap: 2.35rem;
     /* 同一行两格高度以较高为准，较短一格垂直居中 */
     align-items: center;
@@ -555,7 +494,7 @@ body {
 .stage2-glass-card__cell {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     gap: 0.45rem;
     min-width: 0;
@@ -651,7 +590,7 @@ body {
 }
 
 .c-1 {
-    width: calc(100% - 20rem);
+    width: 90%;
     display: flex;
     justify-content: center;
     height: 100%;
@@ -679,22 +618,19 @@ body {
     flex-flow: column;
     align-self: flex-end;
     font-size: 1.2rem;
-    line-height: 1.6;
+    line-height: 1.65;
     color: rgba(255, 255, 255, 0.7);
     gap: 1rem;
-    max-width: 400px;
+    max-width: min(100%, 24rem);
     text-align: end;
 }
 
 .section__desc>p:nth-child(1) {
     font-size: 0.875rem;
     font-weight: 300;
-}
-
-.price {
-    font-size: 3rem;
-    color: #fff;
-    font-weight: 500;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 /* 参数网格 */
@@ -766,7 +702,7 @@ body {
     position: absolute;
     top: 1.5rem;
     left: 1.5rem;
-    font-size: 0.75rem;
+    font-size: 1rem;
     letter-spacing: 0.1em;
     font-weight: 200;
 }
@@ -864,23 +800,23 @@ body {
 }
 
 .feature__label {
-    font-size: .5rem;
-    font-weight: 400;
+    font-size: .8rem;
+    font-weight: 300;
     flex: 1;
 }
 
 .feature__desc {
     text-transform: uppercase;
     max-width: 36ch;
-    font-size: .5rem;
-    font-weight: 400;
+    font-size: .8rem;
+    font-weight: 300;
 }
 
 /* 返回按钮 */
 .back-btn {
     position: fixed;
-    left: 10rem;
-    top: 50rem;
+    left: 5%;
+    top: 39rem;
     transform: translateY(-50%);
     border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 0.75rem 2rem;

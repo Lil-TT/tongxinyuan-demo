@@ -407,9 +407,20 @@ function enterMainScene() {
       }
     }, "hitGround")
     .to(modelGroup.position, { y: -0.4, duration: 0.15, yoyo: true, repeat: 1 }, "hitGround")
-    .to('.ui-stage-1',
-      { opacity: 1, y: 30, duration: 1.5, ease: "power2.out" },
-      "hitGround+=0.2"
+    .to(
+      '.ui-stage-1, .stage1-reveal-bar',
+      {
+        opacity: 1,
+        y: -30,
+        duration: 1.5,
+        ease: 'power2.out',
+        onComplete: () => {
+          gsap.utils.toArray('.stage1-reveal-bar').forEach((el) => {
+            el.style.pointerEvents = 'auto';
+          });
+        },
+      },
+      'hitGround+=0.2'
     )
     .addLabel("openLid", "hitGround+=1.5")
     .to(caseLid.rotation, { x: lidInitialRot - Math.PI / 2, duration: 1.5, ease: "power2.out" }, "openLid")

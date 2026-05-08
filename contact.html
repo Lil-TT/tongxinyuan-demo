@@ -111,34 +111,35 @@
 
         .sec-1 {
             position: relative;
-            padding-top: 90px;
-            padding-bottom: 100px;
-            min-height: 624px;
+            padding-top: 52px;
+            padding-bottom: 64px;
+            min-height: 0;
             z-index: 1;
-        }
-
-        .card-circle-bg {
-            position: absolute;
-            width: 620px;
-            height: 620px;
-            top: 46%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 1px solid rgba(97, 116, 157, 0.3);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: -1;
         }
 
         .sec-1 h1 {
             width: 100%;
             max-width: 723px;
             font-weight: 400;
-            font-size: 2.5rem;
-            line-height: 1.675;
+            font-size: 2rem;
+            line-height: 1.55;
             color: #FFFFFF;
-            margin: 0 0 40px 0;
-            margin-bottom: 60px;
+            margin: 52px 0 28px 0;
+        }
+
+        /* 联系页首屏标题：第二、三语义段之间的分隔线 */
+        .sec-1 h1 .contact-intro__rule {
+            display: block;
+            width: min(30%, 13em);
+            height: 1px;
+            margin: 0.42em 0 0.48em;
+            background: linear-gradient(
+                90deg,
+                rgba(200, 228, 255, 0.42) 0%,
+                rgba(255, 255, 255, 0.22) 55%,
+                rgba(200, 228, 255, 0.12) 100%
+            );
+            box-shadow: 0 0 8px rgba(100, 170, 255, 0.12);
         }
 
         .sec-1 p,
@@ -150,6 +151,10 @@
             line-height: 2;
             color: #FFFFFF;
             margin: 0;
+        }
+
+        .sec-1 p {
+            margin-bottom: 69px;
         }
 
         p {
@@ -167,23 +172,14 @@
             border-bottom: none;
         }
 
-        .brand-logo {
-            width: 189px;
-            height: 50px;
-            background: url('./logo.png') no-repeat left center/contain;
-            margin-bottom: 40px;
-            margin-top: 60px;
-        }
-
         .sec-2 {
             padding-top: 80px;
             padding-bottom: 80px;
-            min-height: 290px;
+            min-height: 240px;
         }
 
         .sub-title {
             font-weight: 400;
-            font-size: 0.75rem;
             margin: 0 0 40px 0;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -191,7 +187,7 @@
         }
 
         .sec-2 p {
-            font-weight: 400;
+            font-weight: 300;
             font-size: 0.75rem;
             color: #FFFFFF;
         }
@@ -201,31 +197,8 @@
             padding-bottom: 120px;
         }
 
-        .contact-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 60px;
-            color: #D0D0D1;
-        }
-
-        .contact-title {
-            font-size: 0.75rem;
-            margin: 0;
-            letter-spacing: 2px;
-            font-weight: 400;
-            color: #D0D0D1;
-        }
-
-        .contact-arrow {
-            width: 24px;
-            height: 24px;
-            color: rgba(255, 255, 255, 0.6);
-            transition: transform 0.3s ease;
-        }
-
-        .contact-header:hover .contact-arrow {
-            transform: translateX(4px);
+        .sub-title.contact-header {
+            margin: 0 0 60px 0;
         }
 
         .locations-grid {
@@ -248,7 +221,7 @@
         }
 
         .location-card h5 {
-            font-weight: 400;
+            font-weight: 300;
             font-size: 0.75rem;
             color: #FFFFFF;
             margin: 0;
@@ -280,11 +253,6 @@
                 font-size: 2rem;
                 line-height: 1.4;
             }
-
-            .card-circle-bg {
-                width: 400px;
-                height: 400px;
-            }
         }
     </style>
 </head>
@@ -303,13 +271,9 @@
     <div class="about-container">
 
         <section class="section-block sec-1">
-            <div class="card-circle-bg"></div>
-            <div class="brand-logo"></div>
-            <h1 data-i18n-key="contact.introH1">专业提供 xMR 晶圆和 xMR 传感核心晶圆的高科技企业</h1>
+            <h1 data-i18n-html="contact.introH1">专业提供 xMR薄膜晶圆<br />xMR 传感核心晶圆材料<br /><span class="contact-intro__rule" aria-hidden="true"></span>以及相关定制化服务的高科技企业</h1>
             <p data-i18n-html="contact.introPHtml">
-                我们致力于提升下游磁传感企业技术升级、产品迭代的企业。我们致力于驱动下游企业在新兴产业布局的企业。我们是一家面向未来多传感器融合、先进封装和异构技术的底层技术提供商。
-                <br>
-                从成立到现在的时间里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。从成立到现在的19个月里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。
+                我们的产品已经得到电网行业企业、国内龙头消费电子行业企业的认可和应用
             </p>
         </section>
 
@@ -321,7 +285,7 @@
         </section>
 
         <section class="section-block sec-3">
-            <div class="contact-header">
+            <div class="sub-title contact-header">
                 <span>[</span> <span style="padding:0 0.2rem;font-size: 0.75rem;" data-i18n-key="contact.contactLabel">联系我们</span> <span>]</span>
             </div>
             <div class="locations-grid">

@@ -53,32 +53,6 @@ export function applyDataI18n(root = document) {
     const val = getByPath(dict, key);
     if (typeof val === 'string') {
       el.innerHTML = val;
-      // #region agent log
-      if (
-        key === 'products.introMemsTitleHtml' ||
-        key === 'products.introSensorTitleHtml'
-      ) {
-        fetch('http://127.0.0.1:7245/ingest/0743baa5-58bf-407e-b00e-872157a9de6a', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '0b5e63' },
-          body: JSON.stringify({
-            sessionId: '0b5e63',
-            runId: 'post-fix',
-            hypothesisId: 'H-html-title',
-            location: 'i18n.js:applyDataI18n',
-            message: 'product intro title via data-i18n-html',
-            data: {
-              key,
-              assignment: 'innerHTML',
-              locale,
-              valHasBrTag: /<br/i.test(val),
-              renderedHasBr: /<br/i.test(el.innerHTML),
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
     }
   });
   root.querySelectorAll('[data-i18n-key]').forEach((el) => {
@@ -108,17 +82,14 @@ export const messages = {
     },
     home: {
       heroTitleHtml:
-        'xMR晶圆<br>xMR-MEMS传感核心晶圆<br>专业提供者',
+        '专业提供xMR薄膜晶圆材料<br>xMR传感核心晶圆材料<br><span class="hero-title__rule" aria-hidden="true"></span>以及相关的定制化服务<br>和咨询服务',
       paramLeftHtml:
-        'xMR薄膜晶圆<br><span style="line-height: 24px;">xMR各种结构和性能的晶圆<br>8 吋、12 吋</span>',
-      paramRightHtml: 'xMR传感核心晶圆<br><span>xMR桥路结构。8 吋、12 吋</span>',
+        'xMR薄膜晶圆<br><span style="line-height: 24px;">8 吋、12 吋</span>',
+      paramRightHtml: 'xMR传感核心晶圆<br><span>8 吋、12 吋</span>',
       stage3TitleX: 'xMR',
       stage3TitleSub: '传感核心晶圆',
       callout8Html: '8吋<br><span>AMR GMR TMR</span>',
       callout12Html: '12吋<br><span>AMR GMR TMR</span>',
-      specTmrVal: 'TMR+MEMS悬臂梁结构',
-      specAmrVal: '半桥、全桥结构',
-      specGmrVal: '半桥、全桥结构',
       stage4TitleX: 'xMR',
       stage4TitleSub: '薄膜晶圆',
       calloutS48Html: '8吋<br><span>AMR GMR TMR</span>',
@@ -128,17 +99,11 @@ export const messages = {
       backBtn: '返回选型',
       cursorHint: '点击晶圆探索',
       introStorageTitle: 'xMR薄膜晶圆',
-      introStorageDescHtml: 'xMR各种结构和性能的晶圆。<br />8 吋、12 吋',
-      introSensorTitleHtml: 'MEMS传感核心',
+      introStorageDescHtml: '8 吋、12 吋',
+      introSensorTitleHtml: 'MEMS传感核心晶圆',
       introSensorDesc: 'xMR桥路结构',
-      introMemsTitleHtml: 'MEMS悬臂梁',
-      introMemsDescHtml: '单材料/双材料悬臂梁基本结构<br />xMR-悬臂梁组合基础结构',
       stage2SubtitleSensor: '传感核心晶圆',
       stage2SubtitleStorage: '薄膜晶圆',
-      stage2ValTmr: 'TMR+MEMS悬臂梁结构',
-      stage2ValBridge: '半桥、全桥结构',
-      ariaSensorList: '传感核心晶圆规格类型',
-      ariaStorageList: '薄膜晶圆规格类型',
       ariaSensorCard: 'TMR 传感核心测试性能摘要',
       ariaStorageCard: 'TMR 薄膜晶圆主要磁性性能摘要',
       labelMrTyp: '[    MR (TYP)    ]',
@@ -158,7 +123,7 @@ export const messages = {
       valWaferSize: '8吋、12吋',
       heroTunnel: '隧道磁电阻',
       heroDescHtml:
-        '湖北元臻微电独有的TMR技术已建立完整体系<br />拥有大动态高线性度、高灵敏度高精度特性<br />MR达到136%-241%，均匀性≤1.5%<br />可根据客户需求进行定制化制备',
+        '湖北元臻微电的TMR产品矩阵包含各种参数组合<br />从大动态、高线性度、高灵敏度、高精度等特性<br />MR在136%–241%，均匀性≤1.5%<br />同时可根据客户需求进行TMR薄膜、TMR传感核心的定制化服务',
       gridStorageTitle1: 'TMR晶圆',
       gridStorageTitle2: '主要磁性性能',
       gridSensorTitle1: 'TMR传感核心',
@@ -174,9 +139,10 @@ export const messages = {
       featureDesc4: '高精度',
     },
     contact: {
-      introH1: '专业提供 xMR 晶圆和 xMR 传感核心晶圆的高科技企业',
+      introH1:
+        '专业提供 xMR薄膜晶圆<br />xMR 传感核心晶圆材料<br /><span class="contact-intro__rule" aria-hidden="true"></span>以及相关定制化服务的高科技企业',
       introPHtml:
-        '我们致力于提升下游磁传感企业技术升级、产品迭代的企业。我们致力于驱动下游企业在新兴产业布局的企业。我们是一家面向未来多传感器融合、先进封装和异构技术的底层技术提供商。<br>从成立到现在的时间里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。从成立到现在的19个月里，我们的产品已经得到国家电网、国内龙头消费电子上市公司、国外消费电子龙头企业的认可。',
+        '我们的产品已经得到电网行业企业、国内龙头消费电子行业企业的认可和应用',
       visionLabel: '未来愿景',
       visionP: '元臻微电将成为国内一家面向未来，专业提供多传感器融合和异构的底层技术的高科技企业。',
       contactLabel: '联系我们',
@@ -278,7 +244,7 @@ export const messages = {
       readMore: '查看详情',
     },
     xmr: {
-      exploreBtn: '探索 XMR',
+      exploreBtn: '探索 xMR',
       closeLabel: '关闭',
     },
     xmrSlides: [
@@ -324,18 +290,15 @@ export const messages = {
     },
     home: {
       heroTitleHtml:
-        'Specialist in xMR Wafers<br>and xMR-MEMS <br>Sensing Cores',
+        'Specialized in xMR film Wafers<br>xMR Sensor Wafers<br><span class="hero-title__rule" aria-hidden="true"></span>and customized services',
       paramLeftHtml:
-        'xMR Thin-Film Wafers<br><span style="line-height: 24px;">xMR wafers in various structures<br> and performance<br>8-inch &amp; 12-inch</span>',
+        'xMR film wafers<br><span style="line-height: 24px;">8-inch &amp; 12-inch</span>',
       paramRightHtml:
-        'xMR Sensing <br>Core Wafers<br><span style="line-height: 24px;">xMR bridge structures.<br> 8-inch &amp; 12-inch</span>',
+        'xMR Sensor <br>wafers<br><span style="line-height: 24px;">8-inch &amp; 12-inch</span>',
       stage3TitleX: 'xMR',
-      stage3TitleSub: 'Sensing Core Wafers',
+      stage3TitleSub: 'Sensor wafers',
       callout8Html: '8-inch<br><span>AMR GMR TMR</span>',
       callout12Html: '12-inch<br><span>AMR GMR TMR</span>',
-      specTmrVal: 'TMR + MEMS cantilever structure',
-      specAmrVal: 'Half-bridge &amp; full-bridge',
-      specGmrVal: 'Half-bridge &amp; full-bridge',
       stage4TitleX: 'xMR',
       stage4TitleSub: 'Thin-Film Wafers',
       calloutS48Html: '8-inch<br><span>AMR GMR TMR</span>',
@@ -344,19 +307,12 @@ export const messages = {
     products: {
       backBtn: 'Back to selection',
       cursorHint: 'Click wafer to explore',
-      introStorageTitle: 'Wafer Materials',
-      introStorageDescHtml: 'xMR Wafers with various structures and<br />properties (8-inch,12-inch)',
-      introSensorTitleHtml: 'MEMS Sensing<br />  Core',
+      introStorageTitle: 'xMR film Wafers',
+      introStorageDescHtml: '8-inch,12-inch',
+      introSensorTitleHtml: 'MEMS Sensor<br />  wafers',
       introSensorDesc: 'xMR bridge structure',
-      introMemsTitleHtml: 'MEMS cantilever<br /> structures',
-      introMemsDescHtml:
-        'Basic Single-material / Dual-material<br /> Cantilever Structures <br />Basic xMR-Cantilever Composite Structures',
-      stage2SubtitleSensor: 'Sensing Core Wafer',
-      stage2SubtitleStorage: 'Thin-Film Wafer',
-      stage2ValTmr: 'TMR + MEMS cantilever structure',
-      stage2ValBridge: 'Half-bridge &amp; full-bridge',
-      ariaSensorList: 'Sensing core wafer types',
-      ariaStorageList: 'Thin-film wafer types',
+      stage2SubtitleSensor: 'Sensor Wafers',
+      stage2SubtitleStorage: 'film wafers',
       ariaSensorCard: 'TMR sensing core performance summary',
       ariaStorageCard: 'TMR thin-film wafer magnetic performance summary',
       labelMrTyp: '[    MR (TYP)    ]',
@@ -376,7 +332,7 @@ export const messages = {
       valWaferSize: '8-inch、12-inch',
       heroTunnel: 'Tunnel Magnetoresistance',
       heroDescHtml:
-        "Eutronsense's TMR platform overview (placeholder).<br />Wide dynamic range, high linearity, sensitivity and precision.<br />MR 136%–241%, uniformity ≤1.5%.<br />Custom fabrication available.",
+        'The TMR product matrix includes varieties of combinations of TMR parameters,<br />such as high dynamic range, high linearity, sensitivity, precision, and temperature drift.<br />The MR is typically 136%–241%, with uniformity ≤1.5%.<br />We also offer customized TMR films and TMR sensing cores on request.',
       gridStorageTitle1: 'TMR Wafer',
       gridStorageTitle2: 'Key Magnetic Specs',
       gridSensorTitle1: 'TMR Sensing Core',
@@ -393,9 +349,10 @@ export const messages = {
       featureDesc4: 'High precision',
     },
     contact: {
-      introH1: 'A high-tech enterprise specializing in xMR wafers and xMR sensing core wafers',
+      introH1:
+        'Specialized in xMR film Wafers<br />xMR Sensor wafers<br /><span class="contact-intro__rule" aria-hidden="true"></span>and customized services.',
       introPHtml:
-        'We are committed to advancing the magnetic sensing industry by providing core technologies that drive our partners innovation and product evolution.<br />We are committed to enabling our downstream partners to expand into emerging industries.We are a foundational technology partner focused on the future of multi-sensor fusion, advanced packaging, and heterogeneous integration.',
+        'Our products have been validated by leading companies in State Power Grid and the Chinese consumer electronics market.',
       visionLabel: 'Future Vision',
       visionP:
         'In just 19 months, our products have been validated by leading organizations, including State Grid, top-tier Chinese consumer electronics OEMs, and globally recognized consumer electronics brands.',

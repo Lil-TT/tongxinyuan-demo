@@ -23,7 +23,7 @@ const navHTML = `
       </svg>
       <div class="nav__line"></div>
     </button>
-    <ul role="list" class="nav__list" style="margin-top:0.8rem">
+    <ul role="list" class="nav__list" style="margin-top:0.55rem">
       <li class="nav__item"><a href="./" class="nav__link" data-nav-home data-i18n-key="nav.home"></a></li>
       <li class="nav__item"><a href="./products.html" class="nav__link" data-i18n-key="nav.products"></a></li>
       <li class="nav__item"><a href="./careers.html" class="nav__link" data-i18n-key="nav.careers"></a></li>
@@ -69,10 +69,13 @@ function updateLocaleSwitcherUI(btn) {
 
 /** 右下角 [ LANGUAGE  CN ] */
 function initLocaleSwitcher() {
+  const currentPath = window.location.pathname;
+  const isHome = currentPath === '/' || currentPath.includes('index.html');
+  const homeRevealClass = isHome ? ' stage1-reveal-bar' : '';
   document.body.insertAdjacentHTML(
     'beforeend',
     `
-<button type="button" id="locale-switcher" class="locale-switcher" aria-live="polite">
+<button type="button" id="locale-switcher" class="locale-switcher${homeRevealClass}${isHome ? ' locale-switcher--hero-left' : ''}" aria-live="polite">
   <span class="locale-switcher__inner">
     <span class="locale-switcher__bracket" aria-hidden="true">[</span>
     <span class="locale-switcher__word" aria-hidden="true">LANGUAGE</span>
@@ -101,6 +104,40 @@ function initLocaleSwitcher() {
     applyDataI18n(document);
     updateLocaleSwitcherUI(btn);
   });
+
+  if (isHome) bindLocaleSwitcherHeroLeftAlign(btn);
+}
+
+/** 首页：语言按钮左缘与 .hero-right 对齐，bottom 仍由 CSS 控制 */
+function bindLocaleSwitcherHeroLeftAlign(btn) {
+  const hero = document.querySelector('.hero-right');
+  if (!hero) return;
+
+  let rafPending = false;
+  const apply = () => {
+    const { left } = hero.getBoundingClientRect();
+    btn.style.left = `${left}px`;
+    btn.style.right = 'auto';
+  };
+
+  const scheduleApply = () => {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => {
+      rafPending = false;
+      apply();
+    });
+  };
+
+  apply();
+  scheduleApply();
+  window.addEventListener('resize', scheduleApply, { passive: true });
+  window.addEventListener('scroll', scheduleApply, { passive: true, capture: true });
+
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(scheduleApply);
+    ro.observe(hero);
+  }
 }
 
 // ==========================================

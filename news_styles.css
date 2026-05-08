@@ -65,12 +65,20 @@ body {
 }
 
 .news-image {
-    flex: 1;
+    --news-image-width: 600px;
+    --news-image-ratio: 16 / 12;
+    flex: 0 0 var(--news-image-width);
+    width: var(--news-image-width);
+    max-width: var(--news-image-width);
+    aspect-ratio: var(--news-image-ratio);
+    max-height: 100%;
+    overflow: hidden;
 }
 
 .news-image img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
     /* 大圆角 */
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
