@@ -894,7 +894,7 @@ header {
    【Figma 视觉还原】HUD 引线标注文字通用精调
    ========================================= */
 
-/* 1. 统一字体：强制全场所有引线标注使用 Space Mono 字体，确保科技感规整 */
+/* 1. 统一样式：引线标注沿用全站默认字体（AlibabaPuHuiTi） */
 .ui-layer [class*="param-text"],
 .ui-layer [class*="callout-text"] {
   text-align: left;
